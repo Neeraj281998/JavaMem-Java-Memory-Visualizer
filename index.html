@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JavaMem – Memory Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090f;--surf:#0d1117;--surf2:#111827;--surf3:#1a2234;
+  --border:#1e2d42;--border2:#2a3d5c;
+  --blue:#38bdf8;--green:#34d399;--orange:#fb923c;
+  --red:#f87171;--purple:#a78bfa;--yellow:#fbbf24;--teal:#2dd4bf;
+  --text:#c9d1d9;--dim:#4b5669;
+  --mono:'JetBrains Mono',monospace;--sans:'Syne',sans-serif;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px;display:flex;flex-direction:column;height:100vh}
+
+/* HEADER */
+.hdr{background:linear-gradient(90deg,#08101e,#0e1a2e);border-bottom:1px solid var(--border2);height:50px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;z-index:20}
+.hdr::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--blue) 40%,var(--green) 60%,transparent);opacity:.5}
+.logo{font-family:var(--sans);font-weight:800;font-size:15px;color:#fff;display:flex;align-items:center;gap:8px}
+.logo-icon{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,var(--blue),var(--green));display:flex;align-items:center;justify-content:center;font-size:12px}
+.hdr-right{display:flex;align-items:center;gap:14px}
+.stats{display:flex;gap:16px}
+.stat{text-align:center}
+.stat-lbl{font-size:7px;text-transform:uppercase;letter-spacing:1.5px;color:var(--dim)}
+.stat-val{font-family:var(--sans);font-weight:700;font-size:17px;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.stat-val.pop{transform:scale(1.5)}
+.s-stack .stat-val{color:var(--blue)}.s-heap .stat-val{color:var(--green)}.s-pool .stat-val{color:var(--orange)}
+.zoom-bar{display:flex;align-items:center;gap:4px;border-left:1px solid var(--border);padding-left:12px}
+.zoom-btn{width:24px;height:24px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.zoom-btn:hover{background:var(--surf2);color:var(--blue)}
+.zoom-lbl{font-size:9px;color:var(--dim);min-width:32px;text-align:center}
+
+/* LAYOUT */
+.app{display:flex;flex:1;overflow:hidden}
+
+/* EDITOR */
+.editor{width:370px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--border);background:var(--surf)}
+.pnl-hdr{padding:8px 14px;border-bottom:1px solid var(--border);font-family:var(--sans);font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--dim);display:flex;align-items:center;gap:7px}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.code-area{flex:1;display:flex;overflow:hidden;background:var(--bg)}
+.ln{width:38px;flex-shrink:0;padding:12px 5px 12px 0;text-align:right;color:var(--dim);border-right:1px solid var(--border);font-size:9px;line-height:1.75;user-select:none;overflow:hidden;white-space:pre;font-family:var(--mono)}
+#code{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:11px;line-height:1.75;padding:12px;resize:none;caret-color:var(--green);tab-size:2}
+.editor-msg{padding:6px 14px;border-top:1px solid var(--border);font-size:9px;min-height:20px;transition:color .3s;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.editor-msg.err{color:var(--red)}.editor-msg.ok{color:var(--green)}.editor-msg.idle{color:var(--dim)}
+.btns{display:flex;gap:5px;padding:8px 10px;border-top:1px solid var(--border);flex-wrap:wrap}
+.btn{flex:1;padding:7px;border:none;border-radius:5px;font-family:var(--mono);font-size:9px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.8px;transition:all .2s;white-space:nowrap}
+.btn-run{background:var(--blue);color:var(--bg)}.btn-run:hover{background:#7dd3fc;transform:translateY(-1px)}
+.btn-clr{background:transparent;color:var(--red);border:1px solid rgba(248,113,113,.35);flex:0 0 auto;padding:7px 10px}.btn-clr:hover{background:rgba(248,113,113,.1)}
+.btn-scope{background:transparent;color:var(--yellow);border:1px solid rgba(251,191,36,.35);flex:0 0 auto;padding:7px 10px}.btn-scope:hover{background:rgba(251,191,36,.1)}
+.btn-arr{background:transparent;color:var(--green);border:1px solid rgba(52,211,153,.35);flex:0 0 auto;padding:7px 10px}.btn-arr:hover{background:rgba(52,211,153,.1)}
+.btn-help{background:transparent;color:var(--dim);border:1px solid var(--border);flex:0 0 auto;padding:7px 10px}.btn-help:hover{background:var(--surf2)}
+
+/* STACK */
+.stack-pnl{width:248px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--border);background:var(--surf)}
+.stack-meta{padding:5px 14px;border-bottom:1px solid var(--border);font-size:8px;color:var(--dim);display:flex;justify-content:space-between;align-items:center}
+.scope-indicator{font-size:7px;padding:2px 7px;border-radius:3px;background:rgba(251,191,36,.1);color:var(--yellow);border:1px solid rgba(251,191,36,.2)}
+.stack-list{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column-reverse;gap:5px}
+.stack-list::-webkit-scrollbar{width:3px}.stack-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+.stack-empty{display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:9px;flex:1;text-align:center;padding:20px;line-height:1.8}
+.stack-base{padding:6px 14px;border-top:2px dashed var(--border);font-size:8px;color:var(--dim);text-align:center}
+.vcard{padding:9px 11px;background:var(--surf2);border:1px solid var(--border);border-left:3px solid transparent;border-radius:5px;font-size:9px;line-height:1.5;opacity:0;transform:translateY(-8px) scale(.97);animation:cardIn .35s cubic-bezier(.34,1.56,.64,1) forwards;transition:background .2s,opacity .4s,transform .4s}
+.vcard:hover{background:var(--surf3)}
+@keyframes cardIn{to{opacity:1;transform:translateY(0) scale(1)}}
+.vcard.prim{border-left-color:var(--orange)}.vcard.ref{border-left-color:var(--blue)}.vcard.nullv{border-left-color:var(--dim)}
+.vcard.popping{animation:scopePop .6s ease-in forwards!important}
+@keyframes scopePop{0%{opacity:1;transform:translateY(0) scale(1);background:rgba(248,113,113,.15)}40%{transform:translateY(-12px) scale(1.04);background:rgba(248,113,113,.25)}100%{opacity:0;transform:translateY(-30px) scale(.8)}}
+.vc-type{font-size:7px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+.vc-name{color:var(--text);font-weight:700;font-size:10px;margin-top:1px}
+.vc-val{margin-top:3px;font-size:9px}
+.vc-val.p{color:var(--orange)}.vc-val.r{color:var(--blue);font-size:8px}.vc-val.n{color:var(--dim)}
+.vc-note{font-size:7px;color:var(--dim);margin-top:4px;padding-top:4px;border-top:1px solid var(--border)}
+
+/* MEMORY */
+.memory{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.region{position:relative;flex:1;overflow:hidden;border-bottom:1px solid var(--border);min-height:0}
+.region:last-child{flex:0 0 175px;border-bottom:none}
+.reg-hdr{padding:7px 12px;border-bottom:1px solid var(--border);font-family:var(--sans);font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:2px;display:flex;align-items:center;gap:6px;position:relative;z-index:4;flex-shrink:0}
+.reg-hdr.heap{color:var(--green)}.reg-hdr.pool{color:var(--orange)}
+.reg-hdr::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,currentColor,transparent);opacity:.15}
+.reg-hdr-btns{display:flex;gap:3px;margin-left:auto}
+.reg-btn{font-size:7px;padding:2px 7px;border-radius:3px;border:1px solid var(--border2);background:transparent;color:var(--dim);cursor:pointer;font-family:var(--mono);transition:all .15s;white-space:nowrap}
+.reg-btn:hover{color:var(--text);background:var(--surf2)}
+.reg-viewport{position:absolute;inset:34px 0 0 0;overflow:hidden;cursor:default}
+.reg-canvas{position:absolute;top:0;left:0;width:100%;height:100%;transform-origin:0 0;transition:transform .25s ease}
+.reg-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--dim);font-size:9px;opacity:.3;pointer-events:none;z-index:1;transition:opacity .4s}
+.reg-empty.gone{opacity:0}
+
+/* HEAP OBJECTS */
+.hobj{position:absolute;background:var(--surf2);border:1.5px solid var(--green);border-radius:8px;min-width:145px;max-width:260px;padding:10px 12px;box-shadow:0 6px 20px rgba(0,0,0,.5);cursor:grab;user-select:none;opacity:0;transform:scale(.45);animation:objPop .4s cubic-bezier(.34,1.56,.64,1) forwards;z-index:3;transition:box-shadow .2s}
+.hobj.pool-o{border-color:var(--orange)}.hobj.ds-o{border-color:var(--purple)}.hobj.ll-o{border-color:var(--teal)}.hobj.bst-o{border-color:var(--yellow)}
+.hobj:hover{box-shadow:0 10px 30px rgba(0,0,0,.7)}.hobj:active{cursor:grabbing}
+.hobj.gc-fade{animation:gcFade 0.8s ease-out forwards!important}
+@keyframes gcFade{0%{opacity:1;border-color:var(--red)}60%{opacity:.3;border-color:var(--red);filter:blur(1px)}100%{opacity:0;transform:scale(.6)}}
+@keyframes objPop{to{opacity:1;transform:scale(1)}}
+.oh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.otype{font-size:7px;font-weight:700;text-transform:uppercase;background:rgba(255,255,255,.05);color:var(--dim);padding:2px 6px;border-radius:3px}
+.oaddr{font-size:7px;color:var(--dim)}
+.orefs{font-size:7.5px;color:var(--blue);margin-bottom:4px;min-height:10px}
+.oval{font-size:12px;font-weight:700;color:var(--text);line-height:1.3;word-break:break-all}
+.obadge{display:inline-block;margin-top:5px;font-size:7px;font-weight:700;padding:2px 7px;border-radius:3px}
+.obadge.interned{background:rgba(251,146,60,.15);color:var(--orange)}
+.obadge.cache{background:rgba(52,211,153,.12);color:var(--green)}
+.obadge.ds{background:rgba(167,139,250,.12);color:var(--purple)}
+.obadge.ll{background:rgba(45,212,191,.12);color:var(--teal)}
+.obadge.bst{background:rgba(251,191,36,.12);color:var(--yellow)}
+
+/* DS shared */
+.ds-body{margin-top:7px;border-top:1px solid var(--border);padding-top:6px}
+.ds-lbl{font-size:7px;color:var(--dim);margin-bottom:3px;text-transform:uppercase;letter-spacing:.8px}
+.ds-items{display:flex;flex-direction:column;gap:2px;max-height:80px;overflow-y:auto}
+.ds-items::-webkit-scrollbar{width:2px}.ds-items::-webkit-scrollbar-thumb{background:var(--border2)}
+.ds-row{display:flex;align-items:center;gap:4px;font-size:9px;padding:2px 4px;border-radius:3px;background:rgba(255,255,255,.03)}
+.ds-idx{color:var(--orange);min-width:16px;text-align:right;flex-shrink:0;font-size:8px}
+.ds-sep{color:var(--dim);font-size:8px}
+.ds-v{color:var(--text);word-break:break-all}
+.ds-sz{font-size:7px;color:var(--dim);margin-top:3px}
+.ds-ops{margin-top:5px;display:flex;gap:3px;align-items:center;flex-wrap:wrap}
+.op-in{font-size:9px;padding:2px 5px;border-radius:4px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);width:80px;outline:none}
+.op-in:focus{border-color:var(--blue)}
+.op-btn{font-size:8px;padding:2px 9px;border-radius:4px;border:none;cursor:pointer;font-family:var(--mono);font-weight:600;transition:all .15s}
+.op-add{background:rgba(52,211,153,.15);color:var(--green)}.op-add:hover{background:rgba(52,211,153,.3)}
+.op-rem{background:rgba(248,113,113,.12);color:var(--red)}.op-rem:hover{background:rgba(248,113,113,.25)}
+
+/* ── LINKED LIST visualization ── */
+.ll-chain{display:flex;align-items:center;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:8px 6px;margin-top:8px;background:rgba(45,212,191,.05);border-radius:8px;border:1px solid rgba(45,212,191,.2);min-height:95px;max-height:105px}
+.ll-chain::-webkit-scrollbar{height:5px;border-radius:3px}.ll-chain::-webkit-scrollbar-thumb{background:var(--teal);border-radius:3px;opacity:0.6}.ll-chain::-webkit-scrollbar-thumb:hover{opacity:1}.ll-chain::-webkit-scrollbar-track{background:transparent}
+.ll-node{display:flex;align-items:center;flex-shrink:0;gap:0;animation:nodeIn .35s cubic-bezier(.34,1.56,.64,1)}
+@keyframes nodeIn{from{opacity:0;transform:scale(.6) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.ll-node-box{display:flex;flex-direction:column;border:2px solid var(--teal);border-radius:7px;overflow:hidden;min-width:52px;box-shadow:0 2px 10px rgba(45,212,191,.2);background:var(--surf2)}
+.ll-node-val{padding:8px 11px;font-size:11px;font-weight:700;color:var(--text);text-align:center;background:rgba(45,212,191,.15);min-height:28px;display:flex;align-items:center;justify-content:center}
+.ll-node-next{padding:4px 6px;font-size:7px;color:var(--teal);text-align:center;border-top:1px solid rgba(45,212,191,.3);background:rgba(45,212,191,.07);font-weight:600}
+.ll-arrow{font-size:16px;color:var(--teal);padding:0 5px;align-self:center;flex-shrink:0;font-weight:bold;opacity:0.8}
+.ll-null{font-size:9px;color:var(--dim);padding:6px 8px;border:2px dashed var(--border2);border-radius:5px;align-self:center;background:rgba(0,0,0,.2);font-weight:600}
+.ll-head-label{font-size:8px;color:var(--teal);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;font-weight:700}
+
+/* ── BST visualization ── */
+.bst-wrap{margin-top:6px;border-top:1px solid var(--border);padding-top:6px}
+.bst-lbl{font-size:7px;color:var(--dim);margin-bottom:5px;text-transform:uppercase;letter-spacing:.8px}
+.bst-canvas{width:100%;overflow:hidden;border-radius:6px;background:rgba(251,191,36,.04);border:1px solid rgba(251,191,36,.15);display:flex;align-items:center;justify-content:center;min-height:140px;max-height:160px}
+.bst-canvas canvas{display:block;max-width:100%;max-height:100%}
+.bst-ops{margin-top:5px;display:flex;gap:3px;align-items:center;flex-wrap:wrap}
+
+/* ARROW SVG */
+#arrow-svg{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;overflow:visible}
+
+/* SCOPE */
+.scope-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center}
+.scope-overlay.show{display:flex}
+.scope-box{background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:26px 30px;max-width:460px;width:92%;text-align:center}
+.scope-title{font-family:var(--sans);font-size:17px;font-weight:800;color:var(--yellow);margin-bottom:7px}
+.scope-sub{font-size:9px;color:var(--dim);margin-bottom:18px;line-height:1.7}
+.scope-vars{display:flex;flex-direction:column;gap:5px;margin-bottom:18px;max-height:200px;overflow-y:auto;text-align:left}
+.scope-var{padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surf2);font-size:9px;cursor:pointer;transition:background .15s,border-color .15s}
+.scope-var-name{color:var(--text);font-weight:700}.scope-var-type{color:var(--dim);font-size:7px}
+.scope-actions{display:flex;gap:8px;justify-content:center}
+.scope-btn{padding:8px 18px;border-radius:6px;border:none;font-family:var(--mono);font-size:9px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.8px;transition:all .2s}
+.scope-btn-pop{background:var(--yellow);color:#000}.scope-btn-pop:hover{opacity:.9}
+.scope-btn-cancel{background:transparent;color:var(--dim);border:1px solid var(--border)}.scope-btn-cancel:hover{color:var(--text)}
+
+/* HELP */
+.help-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center}
+.help-overlay.show{display:flex}
+.help-box{background:var(--surf);border:1px solid var(--border2);border-radius:10px;padding:22px;max-width:540px;width:92%;max-height:82vh;overflow-y:auto}
+.help-box::-webkit-scrollbar{width:3px}.help-box::-webkit-scrollbar-thumb{background:var(--border2)}
+.help-box h2{font-family:var(--sans);font-size:14px;color:var(--blue);margin-bottom:12px}
+.help-box h3{font-family:var(--sans);font-size:9px;color:var(--green);margin:12px 0 4px;text-transform:uppercase;letter-spacing:1px}
+.help-box pre{background:var(--bg);padding:8px;border-radius:6px;font-size:9px;color:var(--orange);border:1px solid var(--border);line-height:1.85;overflow-x:auto}
+.help-close{float:right;background:none;border:1px solid var(--red);color:var(--red);border-radius:4px;padding:3px 10px;cursor:pointer;font-family:var(--mono);font-size:9px}
+.help-note{font-size:8px;color:var(--dim);margin-top:8px;line-height:1.7;border-left:2px solid var(--border2);padding-left:8px}
+
+/* MOBILE */
+.mobile-overlay{display:none;position:fixed;inset:0;background:rgba(4,6,12,.97);z-index:999;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center}
+.mobile-overlay.show{display:flex}
+.mobile-icon{font-size:48px;margin-bottom:16px}
+.mobile-title{font-family:var(--sans);font-size:22px;font-weight:800;color:var(--blue);margin-bottom:10px}
+.mobile-sub{font-size:12px;color:var(--dim);line-height:1.8;margin-bottom:24px;max-width:300px}
+.mobile-badges{display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap;justify-content:center}
+.mobile-badge{padding:6px 14px;border-radius:20px;font-size:10px;font-weight:700;font-family:var(--sans)}
+.mobile-badge.lap{background:rgba(52,211,153,.15);color:var(--green);border:1px solid rgba(52,211,153,.3)}
+.mobile-badge.tab{background:rgba(56,189,248,.12);color:var(--blue);border:1px solid rgba(56,189,248,.25)}
+.mobile-anyway{padding:10px 22px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--dim);font-family:var(--mono);font-size:10px;cursor:pointer;transition:all .2s}
+.mobile-anyway:hover{color:var(--text);border-color:var(--border)}
+</style>
+</head>
+<body>
+
+<!-- MOBILE WARNING -->
+<div class="mobile-overlay" id="mobile-warn">
+  <div class="mobile-icon">💻</div>
+  <div class="mobile-title">Best on Larger Screens</div>
+  <div class="mobile-sub">JavaMem visualizes heap, stack, and memory arrows in real-time. On small screens the layout gets very tight.<br><br>Open on a laptop or tablet for the full experience.</div>
+  <div class="mobile-badges">
+    <span class="mobile-badge lap">✓ Laptop — Perfect</span>
+    <span class="mobile-badge tab">✓ Tablet — Great</span>
+  </div>
+  <button class="mobile-anyway" onclick="document.getElementById('mobile-warn').classList.remove('show')">Continue anyway →</button>
+</div>
+
+<!-- GLOBAL ARROW SVG -->
+<svg id="arrow-svg">
+  <defs>
+    <marker id="ah-blue"   markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#38bdf8"/></marker>
+    <marker id="ah-orange" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#fb923c"/></marker>
+    <marker id="ah-purple" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#a78bfa"/></marker>
+    <marker id="ah-teal"   markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#2dd4bf"/></marker>
+    <marker id="ah-yellow" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#fbbf24"/></marker>
+  </defs>
+</svg>
+
+<header class="hdr">
+  <div class="logo"><div class="logo-icon">☕</div>JavaMem</div>
+  <div class="hdr-right">
+    <div class="stats">
+      <div class="stat s-stack"><div class="stat-lbl">Stack</div><div class="stat-val" id="ss">0</div></div>
+      <div class="stat s-heap"><div class="stat-lbl">Heap</div><div class="stat-val" id="sh">0</div></div>
+      <div class="stat s-pool"><div class="stat-lbl">Pool</div><div class="stat-val" id="sp">0</div></div>
+    </div>
+    <div class="zoom-bar">
+      <button class="zoom-btn" onclick="zoomRegion('heap',-1)">−</button>
+      <span class="zoom-lbl" id="zoom-lbl">100%</span>
+      <button class="zoom-btn" onclick="zoomRegion('heap',1)">+</button>
+      <button class="zoom-btn" onclick="autoArrange()" title="Auto-arrange" style="font-size:11px;width:30px">⊞</button>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+  <!-- EDITOR -->
+  <div class="editor">
+    <div class="pnl-hdr"><span class="dot" style="background:var(--blue)"></span>Code Editor</div>
+    <div class="code-area">
+      <div class="ln" id="ln">1</div>
+      <textarea id="code" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+    </div>
+    <div class="editor-msg idle" id="msg">Ready — Ctrl+Enter to run</div>
+    <div class="btns">
+      <button class="btn btn-run"   onclick="run()">▶ Run</button>
+      <button class="btn btn-clr"   onclick="clearAll()">✕ Clear</button>
+      <button class="btn btn-scope" onclick="showScopePanel()">⏏ Scope</button>
+      <button class="btn btn-arr"   onclick="autoArrange()">⊞ Arrange</button>
+      <button class="btn btn-help"  onclick="toggleHelp()">? Help</button>
+    </div>
+  </div>
+
+  <!-- STACK -->
+  <div class="stack-pnl">
+    <div class="pnl-hdr"><span class="dot" style="background:var(--orange)"></span>Stack Frame · main()</div>
+    <div class="stack-meta"><span>Variables in scope</span><span class="scope-indicator">ACTIVE</span></div>
+    <div class="stack-list" id="slist">
+      <div class="stack-empty" id="sempty">Write Java code<br>and press ▶ Run</div>
+    </div>
+    <div class="stack-base">▁ STACK BASE ▁</div>
+  </div>
+
+  <!-- MEMORY -->
+  <div class="memory">
+    <div class="region" id="heap-reg">
+      <div class="reg-hdr heap">
+        Heap <small style="opacity:.5;font-weight:400;font-size:7px">· GC managed</small>
+        <div class="reg-hdr-btns">
+          <button class="reg-btn" onclick="autoArrange()">⊞</button>
+          <button class="reg-btn" onclick="zoomRegion('heap',-1)">−</button>
+          <button class="reg-btn" onclick="zoomRegion('heap',1)">+</button>
+          <button class="reg-btn" onclick="resetZoom('heap')">1:1</button>
+        </div>
+      </div>
+      <div class="reg-viewport" id="heap-vp">
+        <div class="reg-canvas" id="heap-canvas"></div>
+      </div>
+      <div class="reg-empty" id="heap-empty"><span style="font-size:26px">🧩</span><span>Objects appear here</span></div>
+    </div>
+    <div class="region" id="pool-reg">
+      <div class="reg-hdr pool">
+        String Pool <small style="opacity:.5;font-weight:400;font-size:7px">· interned</small>
+        <div class="reg-hdr-btns">
+          <button class="reg-btn" onclick="autoArrange('pool')">⊞</button>
+        </div>
+      </div>
+      <div class="reg-viewport" id="pool-vp">
+        <div class="reg-canvas" id="pool-canvas"></div>
+      </div>
+      <div class="reg-empty" id="pool-empty"><span style="font-size:20px">🏊</span><span>Interned strings here</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCOPE PANEL -->
+<div class="scope-overlay" id="scope-overlay">
+  <div class="scope-box">
+    <div class="scope-title">⏏ End of Scope</div>
+    <div class="scope-sub">Select variables to pop off the stack.<br>Orphaned heap objects will be garbage collected.</div>
+    <div class="scope-vars" id="scope-var-list"></div>
+    <div class="scope-actions">
+      <button class="scope-btn scope-btn-pop" onclick="executeScopePop()">Pop Selected</button>
+      <button class="scope-btn scope-btn-cancel" onclick="hideScopePanel()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- HELP -->
+<div class="help-overlay" id="help-overlay">
+  <div class="help-box">
+    <button class="help-close" onclick="toggleHelp()">✕ Close</button>
+    <h2>☕ JavaMem — Syntax Reference</h2>
+    <h3>Primitives</h3>
+    <pre>int age = 25;
+double gpa = 9.5;
+boolean active = true;
+char grade = 'A';</pre>
+    <h3>Strings</h3>
+    <pre>String name = "Alice";           // → String Pool
+String s = new String("Alice");  // → Heap</pre>
+    <h3>Arrays</h3>
+    <pre>int[] scores = {95, 87, 76};</pre>
+    <h3>ArrayList / Stack</h3>
+    <pre>ArrayList&lt;Integer&gt; list = new ArrayList&lt;&gt;();
+list.add(10);
+list.add(20);</pre>
+    <h3>LinkedList (visual node chain)</h3>
+    <pre>LinkedList&lt;Integer&gt; ll = new LinkedList&lt;&gt;();
+ll.add(10);
+ll.add(20);
+ll.add(30);
+ll.remove(20);  // removes by value</pre>
+    <h3>HashMap / HashSet</h3>
+    <pre>HashMap&lt;String,String&gt; map = new HashMap&lt;&gt;();
+map.put("name", "Alice");
+HashSet&lt;String&gt; set = new HashSet&lt;&gt;();
+set.add("apple");</pre>
+    <h3>BST — Binary Search Tree (visual tree)</h3>
+    <pre>BST tree = new BST();
+tree.add(50);
+tree.add(30);
+tree.add(70);
+tree.add(20);
+tree.remove(30);</pre>
+    <h3>Scope Pop</h3>
+    <pre>Click ⏏ Scope → select variables → Pop
+Orphaned objects get GC'd with animation</pre>
+    <div class="help-note">Drag any object to reposition · ⊞ auto-arranges · zoom with − / +</div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ─── Types ───
+const PRIMS    = new Set(['int','long','short','byte','float','double','boolean','char']);
+const WRAPPERS = new Set(['Integer','Long','Short','Byte','Float','Double','Boolean','Character']);
+const DS_TYPES = new Set(['ArrayList','LinkedList','HashMap','HashSet','Stack','ArrayDeque','TreeMap','TreeSet','LinkedHashMap','PriorityQueue','BST']);
+
+let S = {
+  vars:[], objs:new Map(), strPool:new Map(), intCache:new Map(),
+  nameToAddr:new Map(), addrCtr:0x1000
+};
+let ZOOM = { heap:1, pool:1 };
+
+const esc = s => { const d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML; };
+const nAddr = () => { S.addrCtr+=16; return '0x'+S.addrCtr.toString(16).toUpperCase().padStart(8,'0'); };
+
+// ─── Mobile ───
+window.addEventListener('load', () => {
+  if (window.innerWidth < 900) document.getElementById('mobile-warn').classList.add('show');
+});
+
+// ─── Zoom ───
+function zoomRegion(r, dir) { ZOOM[r]=Math.min(2,Math.max(0.35,ZOOM[r]+dir*0.15)); applyZoom(r); }
+function resetZoom(r) { ZOOM[r]=1; applyZoom(r); }
+function applyZoom(r) {
+  const c=document.getElementById(r+'-canvas');
+  if(c) c.style.transform=`scale(${ZOOM[r]})`;
+  document.getElementById('zoom-lbl').textContent=Math.round(ZOOM[r]*100)+'%';
+}
+
+// ─── Auto-arrange ───
+function autoArrange(region='heap') {
+  const canvas=document.getElementById(region+'-canvas');
+  const vp=document.getElementById(region+'-vp');
+  if(!canvas||!vp) return;
+  const W=(vp.getBoundingClientRect().width||600)/ZOOM[region];
+  const PAD=18, GAP=14, NW=175;
+  const cols=Math.max(1,Math.floor((W-PAD*2)/(NW+GAP)));
+  let col=0, x=PAD, y=PAD, rowH=0;
+  S.objs.forEach((obj,addr)=>{
+    const inR=region==='pool'?obj.isPool:!obj.isPool;
+    if(!inR) return;
+    const el=document.getElementById('obj-'+addr);
+    if(!el) return;
+    const w=el.offsetWidth||160, h=el.offsetHeight||120;
+    if(col>=cols){col=0;x=PAD;y+=rowH+GAP;rowH=0;}
+    el.style.transition='left .4s cubic-bezier(.34,1.56,.64,1),top .4s cubic-bezier(.34,1.56,.64,1)';
+    el.style.left=x+'px'; el.style.top=y+'px';
+    obj.x=x; obj.y=y;
+    x+=w+GAP; rowH=Math.max(rowH,h); col++;
+    setTimeout(()=>{el.style.transition='box-shadow .2s';},460);
+  });
+  setTimeout(drawArrows,470);
+}
+
+// ─── Parser ───
+function parseLine(raw) {
+  let line=raw.replace(/\/\/.*$/,'').trim().replace(/;$/,'').trim();
+  if(!line) return null;
+  let m;
+
+  // Method call: var.method(args)
+  m=line.match(/^(\w+)\.(add|push|put|remove|pop|offer|addFirst|addLast|removeFirst|removeLast|poll|insert|delete)\s*\(([^)]*)\)$/);
+  if(m) return{kind:'method',varName:m[1],method:m[2],args:splitArgs(m[3])};
+
+  // Array: type[] name = {...}
+  m=line.match(/^(\w+)\s*\[\s*\]\s+(\w+)\s*=\s*\{([^}]*)\}$/);
+  if(m) return{kind:'array',type:m[1]+'[]',name:m[2],items:splitArgs(m[3])};
+
+  // Array: type[] name = new type[n]
+  m=line.match(/^(\w+)\s*\[\s*\]\s+(\w+)\s*=\s*new\s+\w+\s*\[(\d+)\]$/);
+  if(m) return{kind:'array',type:m[1]+'[]',name:m[2],items:new Array(parseInt(m[3])).fill('0')};
+
+  // BST: BST name = new BST()
+  m=line.match(/^BST\s+(\w+)\s*=\s*new\s+BST\s*\(\s*\)$/);
+  if(m) return{kind:'ds',type:'BST',name:m[1]};
+
+  // DS: Type<...> name = new Type<>()
+  m=line.match(/^(\w+)\s*(?:<[^>]*>)?\s+(\w+)\s*=\s*new\s+(\w+)\s*(?:<[^>]*>)?\s*\(\s*\)$/);
+  if(m){
+    const t=DS_TYPES.has(m[1])?m[1]:DS_TYPES.has(m[3])?m[3]:null;
+    if(t) return{kind:'ds',type:t,name:m[2]};
+  }
+
+  // Normal var
+  m=line.match(/^(?:final\s+)?(\w+)\s*(?:<[^>]*>)?\s+(\w+)(?:\s*=\s*(.+))?$/);
+  if(m){
+    const[,type,name,value=null]=m;
+    const known=PRIMS.has(type)||WRAPPERS.has(type)||type==='String'||type==='Object'||type==='var'||DS_TYPES.has(type);
+    if(!known) return null;
+    if(!/^[a-zA-Z_$]\w*$/.test(name)) return null;
+    if(DS_TYPES.has(type)) return{kind:'ds',type,name};
+    return{kind:'var',type,name,value:value?value.trim():null};
+  }
+  return null;
+}
+
+function splitArgs(raw){
+  if(!raw||!raw.trim()) return[];
+  const args=[];let cur='',depth=0,inStr=false,sc='';
+  for(const c of raw){
+    if(inStr){cur+=c;if(c===sc)inStr=false;}
+    else if(c==='"'||c==="'"){inStr=true;sc=c;cur+=c;}
+    else if(c==='('){depth++;cur+=c;}
+    else if(c===')'){depth--;cur+=c;}
+    else if(c===','&&depth===0){args.push(cur.trim());cur='';}
+    else cur+=c;
+  }
+  if(cur.trim())args.push(cur.trim());
+  return args.map(a=>(a.startsWith('"')&&a.endsWith('"'))||(a.startsWith("'")&&a.endsWith("'"))?a.slice(1,-1):a);
+}
+
+function inferType(v){
+  if(!v)return'Object';v=String(v).trim();
+  if(v.startsWith('"')||v.startsWith("'"))return'String';
+  if(v==='true'||v==='false')return'boolean';
+  if(/^\d+\.\d+/.test(v))return'double';
+  if(/^\d+[Ll]$/.test(v))return'long';
+  if(/^\d+$/.test(v))return'int';
+  return'Object';
+}
+
+function normalizeVal(type,val){
+  if(val===null||val===undefined)return null;
+  val=String(val).trim().replace(/;$/,'').replace(/[fF]$/,'').replace(/[lL]$/,'');
+  if(val==='null')return null;
+  if(type==='String'){
+    if(val.startsWith('"')&&val.endsWith('"'))return val;
+    if(/^new\s+String/.test(val))return val;
+    return`"${val}"`;
+  }
+  if(type==='boolean'||type==='Boolean')return(val==='true'||val==='1')?'true':'false';
+  if(type==='char'||type==='Character')return val.startsWith("'")?val:`'${val[0]||'?'}'`;
+  if(PRIMS.has(type)||WRAPPERS.has(type)){const n=parseFloat(val);return isNaN(n)?'0':String(n);}
+  return val;
+}
+
+// ─── Position finder ───
+function findPos(regionKey){
+  const vp=document.getElementById(regionKey+'-vp');
+  const r=vp?vp.getBoundingClientRect():{width:600,height:300};
+  const W=(r.width||600)/ZOOM[regionKey],H=(r.height||300)/ZOOM[regionKey];
+  const NW=180,NH=145,P=18;
+  const taken=[];
+  S.objs.forEach(o=>{
+    const inR=regionKey==='pool'?o.isPool:!o.isPool;
+    if(inR)taken.push({x:o.x,y:o.y});
+  });
+  for(let i=0;i<120;i++){
+    const x=P+Math.random()*Math.max(0,W-NW-P*2);
+    const y=P+Math.random()*Math.max(0,H-NH-P*2);
+    if(taken.every(p=>Math.abs(p.x-x)>NW+10||Math.abs(p.y-y)>NH+10))return{x,y};
+  }
+  const idx=taken.length;
+  return{x:P+(idx%3)*(NW+14),y:P+Math.floor(idx/3)*(NH+14)};
+}
+
+// ─── Stack card ───
+function addVarCard(v){
+  const se=document.getElementById('sempty');if(se)se.style.display='none';
+  const cls=v.isPrim?'prim':v.addr?'ref':'nullv';
+  const valH=v.isPrim?`<div class="vc-val p">${esc(v.value)}</div>`:!v.addr?`<div class="vc-val n">null</div>`:`<div class="vc-val r">${esc(v.addr)}</div>`;
+  const note=v.meta?.pool?'→ String Pool':v.meta?.cache?'→ Integer Cache [-128..127]':v.meta?.ds?`→ Heap [${v.meta.ds}]`:v.isPrim?'direct value on stack':v.addr?'→ Heap object':'null ref';
+  const el=document.createElement('div');
+  el.className=`vcard ${cls}`;el.id='var-'+v.id;
+  el.innerHTML=`<div class="vc-type">${esc(v.type)}</div><div class="vc-name">${esc(v.name)}</div>${valH}<div class="vc-note">${note}</div>`;
+  v.el=el;document.getElementById('slist').appendChild(el);
+}
+
+// ─── Standard DS ops (ArrayList, Stack, HashSet, HashMap etc.) ───
+function buildDSOps(addr,type){
+  const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
+  const isStack=type==='Stack';
+  const isArr=type.endsWith('[]');
+  if(isMap)return`<div class="ds-ops"><input class="op-in" style="width:60px" id="opk-${addr}" placeholder="key"/><input class="op-in" style="width:60px" id="opv-${addr}" placeholder="val"/><button class="op-btn op-add" onclick="dsAdd('${addr}')">put</button><button class="op-btn op-rem" onclick="dsRemove('${addr}')">remove</button></div>`;
+  if(isArr)return`<div class="ds-ops"><input class="op-in" style="width:36px" id="opk-${addr}" placeholder="i"/><input class="op-in" style="width:60px" id="opv-${addr}" placeholder="val"/><button class="op-btn op-add" onclick="dsAdd('${addr}')">set[i]</button><button class="op-btn op-rem" onclick="dsRemove('${addr}')">reset</button></div>`;
+  if(isStack)return`<div class="ds-ops"><input class="op-in" id="opv-${addr}" placeholder="value"/><button class="op-btn op-add" onclick="dsAdd('${addr}')">push</button><button class="op-btn op-rem" onclick="dsRemove('${addr}')">pop</button></div>`;
+  const isSet=type==='HashSet'||type==='TreeSet';
+  return`<div class="ds-ops"><input class="op-in" id="opv-${addr}" placeholder="value"/><button class="op-btn op-add" onclick="dsAdd('${addr}')">add</button><button class="op-btn op-rem" onclick="dsRemove('${addr}')">${isSet?'remove':'remove(last)'}</button></div>`;
+}
+
+function renderDSRows(type,d){
+  const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
+  if(isMap){const e=d.entries||[];return e.length?e.map(x=>`<div class="ds-row"><span class="ds-idx">${esc(x.k)}</span><span class="ds-sep">→</span><span class="ds-v">${esc(x.v)}</span></div>`).join(''):'<div class="ds-row" style="color:var(--dim);font-size:8px">(empty)</div>';}
+  const it=d.items||[];return it.length?it.map((v,i)=>`<div class="ds-row"><span class="ds-idx">[${i}]</span><span class="ds-sep">→</span><span class="ds-v">${esc(v)}</span></div>`).join(''):'<div class="ds-row" style="color:var(--dim);font-size:8px">(empty)</div>';
+}
+
+function getDSDisp(type,d){
+  const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
+  const isSet=type==='HashSet'||type==='TreeSet';
+  if(isMap){const e=d.entries||[];return e.length?`{${e.map(x=>`${x.k}:${x.v}`).join(', ')}}`:'{}'}
+  const it=d.items||[];return it.length?(isSet?`{${it.join(', ')}}`:`[${it.join(', ')}]`):(isSet?'{}':'[]');
+}
+
+function buildDSBody(addr,type,d){
+  const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
+  return`<div class="ds-body"><div class="ds-lbl">${isMap?'Key → Value':'Elements'}</div><div class="ds-items" id="dsitems-${addr}">${renderDSRows(type,d)}</div><div class="ds-sz" id="dssz-${addr}">${isMap?'entries':'size'}: ${isMap?(d.entries||[]).length:(d.items||[]).length}</div>${buildDSOps(addr,type)}</div>`;
+}
+
+function refreshDS(addr){
+  const obj=S.objs.get(addr);if(!obj||!obj.dsData)return;
+  const{type,dsData:d}=obj;
+  const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
+  const ie=document.getElementById('dsitems-'+addr);
+  const se=document.getElementById('dssz-'+addr);
+  const oe=document.getElementById('oval-'+addr);
+  if(ie)ie.innerHTML=renderDSRows(type,d);
+  if(se)se.textContent=`${isMap?'entries':'size'}: ${isMap?(d.entries||[]).length:(d.items||[]).length}`;
+  if(oe)oe.textContent=getDSDisp(type,d);
+}
+
+window.dsAdd=function(addr){
+  const obj=S.objs.get(addr);if(!obj||!obj.dsData)return;
+  const{type,dsData:d}=obj;
+  const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
+  const isArr=type.endsWith('[]');const isSet=type==='HashSet'||type==='TreeSet';
+  const vEl=document.getElementById('opv-'+addr),kEl=document.getElementById('opk-'+addr);
+  const val=vEl?vEl.value.trim():'';
+  if(isMap){const key=kEl?kEl.value.trim():'';if(!key||!val){setMsg('Enter key and value','err');return;}const idx=(d.entries||[]).findIndex(e=>e.k===key);if(idx>=0)d.entries[idx].v=val;else(d.entries=d.entries||[]).push({k:key,v:val});if(kEl)kEl.value='';if(vEl)vEl.value='';setMsg(`put("${key}","${val}") ✓`,'ok');}
+  else if(isArr){const i=kEl?parseInt(kEl.value):NaN;if(isNaN(i)||i<0||i>=(d.items||[]).length){setMsg('Index out of bounds','err');return;}if(!val){setMsg('Enter value','err');return;}d.items[i]=val;if(kEl)kEl.value='';if(vEl)vEl.value='';setMsg(`arr[${i}]="${val}" ✓`,'ok');}
+  else{if(!val){setMsg('Enter a value','err');return;}if(isSet&&(d.items||[]).includes(val)){setMsg(`"${val}" already in set`,'err');return;}(d.items=d.items||[]).push(val);if(vEl)vEl.value='';setMsg(`add("${val}") ✓`,'ok');}
+  refreshDS(addr);
+};
+
+window.dsRemove=function(addr){
+  const obj=S.objs.get(addr);if(!obj||!obj.dsData)return;
+  const{type,dsData:d}=obj;
+  const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
+  const isArr=type.endsWith('[]');const isStack=type==='Stack';const isSet=type==='HashSet'||type==='TreeSet';
+  const vEl=document.getElementById('opv-'+addr),kEl=document.getElementById('opk-'+addr);
+  if(isMap){const key=kEl?kEl.value.trim():'';if(!key){setMsg('Enter key','err');return;}const before=(d.entries||[]).length;d.entries=(d.entries||[]).filter(e=>e.k!==key);if(kEl)kEl.value='';setMsg(d.entries.length<before?`remove("${key}") ✓`:`Key "${key}" not found`,d.entries.length<before?'ok':'err');}
+  else if(isArr){const i=kEl?parseInt(kEl.value):NaN;if(isNaN(i)||i<0||i>=(d.items||[]).length){setMsg('Out of bounds','err');return;}d.items[i]='0';if(kEl)kEl.value='';setMsg(`arr[${i}]=0 ✓`,'ok');}
+  else if(isStack){if(!(d.items||[]).length){setMsg('Stack empty','err');return;}const rem=d.items.pop();setMsg(`pop() → "${rem}"`,'ok');}
+  else if(isSet){const val=vEl?vEl.value.trim():'';if(!val){setMsg('Enter value','err');return;}const before=(d.items||[]).length;d.items=(d.items||[]).filter(x=>x!==val);if(vEl)vEl.value='';setMsg(d.items.length<before?`remove("${val}") ✓`:`"${val}" not found`,'ok');}
+  else{if(!(d.items||[]).length){setMsg('Empty','err');return;}const rem=d.items.pop();if(vEl)vEl.value='';setMsg(`removed "${rem}" ✓`,'ok');}
+  refreshDS(addr);
+};
+
+// ─────────────────────────────────────────────
+// LINKED LIST — visual node-chain display
+// ─────────────────────────────────────────────
+function renderLLChain(items) {
+  if (!items.length) return '<div style="color:var(--dim);font-size:8px;padding:8px">[HEAD] → null</div>';
+  let html = '<div class="ll-head-label">HEAD</div><div class="ll-chain">';
+  items.forEach((v, i) => {
+    const isLast = i === items.length - 1;
+    html += `<div class="ll-node">
+      <div class="ll-node-box">
+        <div class="ll-node-val">${esc(v)}</div>
+        <div class="ll-node-next">${isLast ? 'null' : 'next'}</div>
+      </div>
+      ${isLast ? '' : '<div class="ll-arrow">→</div>'}
+    </div>`;
+  });
+  html += '<div class="ll-null">∅</div></div>';
+  return html;
+}
+
+function buildLLBody(addr, d) {
+  return `<div class="ds-body">
+    <div class="ds-lbl">Node Chain · size: <span id="llsz-${addr}">${(d.items||[]).length}</span></div>
+    <div id="llchain-${addr}">${renderLLChain(d.items||[])}</div>
+    <div class="ds-ops">
+      <input class="op-in" id="opv-${addr}" placeholder="value"/>
+      <button class="op-btn op-add" onclick="llAdd('${addr}')">add (tail)</button>
+      <button class="op-btn op-rem" onclick="llRemove('${addr}')">remove (val)</button>
+    </div>
+  </div>`;
+}
+
+function refreshLL(addr) {
+  const obj = S.objs.get(addr); if (!obj) return;
+  const d = obj.dsData;
+  const chainEl = document.getElementById('llchain-'+addr);
+  const szEl    = document.getElementById('llsz-'+addr);
+  const ovalEl  = document.getElementById('oval-'+addr);
+  if (chainEl) chainEl.innerHTML = renderLLChain(d.items||[]);
+  if (szEl)    szEl.textContent  = (d.items||[]).length;
+  if (ovalEl)  ovalEl.textContent= `LinkedList[${(d.items||[]).join(' → ')}]`;
+}
+
+window.llAdd = function(addr) {
+  const obj=S.objs.get(addr);if(!obj)return;
+  const vEl=document.getElementById('opv-'+addr);
+  const val=vEl?vEl.value.trim():'';
+  if(!val){setMsg('Enter a value to add','err');return;}
+  (obj.dsData.items=obj.dsData.items||[]).push(val);
+  if(vEl)vEl.value='';
+  refreshLL(addr);
+  setMsg(`LinkedList.add("${val}") ✓`,'ok');
+};
+
+window.llRemove = function(addr) {
+  const obj=S.objs.get(addr);if(!obj)return;
+  const vEl=document.getElementById('opv-'+addr);
+  const val=vEl?vEl.value.trim():'';
+  const items=obj.dsData.items||[];
+  if(!val){
+    // remove last
+    if(!items.length){setMsg('List is empty','err');return;}
+    const rem=items.pop();if(vEl)vEl.value='';
+    refreshLL(addr);setMsg(`removed "${rem}" (tail)`,'ok');
+  } else {
+    const idx=items.indexOf(val);
+    if(idx<0){setMsg(`"${val}" not found in list`,'err');return;}
+    items.splice(idx,1);if(vEl)vEl.value='';
+    refreshLL(addr);setMsg(`removed "${val}" ✓`,'ok');
+  }
+};
+
+// ─────────────────────────────────────────────
+// BST — Binary Search Tree
+// ─────────────────────────────────────────────
+class BSTNode { constructor(v){this.val=v;this.left=null;this.right=null;} }
+
+class BinarySearchTree {
+  constructor(){this.root=null;}
+  insert(v){
+    v=parseFloat(v);if(isNaN(v))return false;
+    const node=new BSTNode(v);
+    if(!this.root){this.root=node;return true;}
+    let cur=this.root;
+    while(true){
+      if(v===cur.val)return false;// no dupes
+      if(v<cur.val){if(!cur.left){cur.left=node;return true;}cur=cur.left;}
+      else{if(!cur.right){cur.right=node;return true;}cur=cur.right;}
+    }
+  }
+  remove(v){
+    v=parseFloat(v);
+    const del=(node,val)=>{
+      if(!node)return null;
+      if(val<node.val)node.left=del(node.left,val);
+      else if(val>node.val)node.right=del(node.right,val);
+      else{
+        if(!node.left)return node.right;
+        if(!node.right)return node.left;
+        // in-order successor (min of right subtree)
+        let min=node.right;while(min.left)min=min.left;
+        node.val=min.val;
+        node.right=del(node.right,min.val);
+      }
+      return node;
+    };
+    const before=this.root;
+    this.root=del(this.root,v);
+    return before!==this.root||this.find(v)===null;
+  }
+  find(v){let c=this.root;while(c){if(v===c.val)return c;c=v<c.val?c.left:c.right;}return null;}
+  inorder(){const r=[];const go=n=>{if(!n)return;go(n.left);r.push(n.val);go(n.right);};go(this.root);return r;}
+}
+
+// Draw BST on a canvas element with dynamic sizing
+function drawBSTCanvas(addr) {
+  const obj=S.objs.get(addr);if(!obj||!obj.bstTree)return;
+  const canvasEl=document.getElementById('bstcanv-'+addr);
+  if(!canvasEl)return;
+  const tree=obj.bstTree;
+  if(!tree.root){const ctx=canvasEl.getContext('2d');ctx.clearRect(0,0,canvasEl.width,canvasEl.height);return;}
+
+  // Calculate positions dynamically
+  const positions=new Map();
+  const levelW=[];
+  function calcDepth(node,d=0){if(!node)return;levelW[d]=(levelW[d]||0)+1;calcDepth(node.left,d+1);calcDepth(node.right,d+1);}
+  calcDepth(tree.root);
+  const depth=levelW.length;
+  const R=16, HGAP=45, VGAP=42;
+  const cW=Math.max(240, (Math.pow(2,depth)*HGAP)+40);
+  const cH=Math.max(120, depth*VGAP+R*2+20);
+  canvasEl.width=cW; canvasEl.height=cH;
+
+  function positionNode(node, x, y, spread){
+    if(!node)return;
+    positions.set(node,{x,y});
+    if(node.left)positionNode(node.left, x-spread, y+VGAP, spread/2);
+    if(node.right)positionNode(node.right, x+spread, y+VGAP, spread/2);
+  }
+  positionNode(tree.root, cW/2, R+12, cW/4);
+
+  const ctx=canvasEl.getContext('2d');
+  ctx.clearRect(0,0,cW,cH);
+  ctx.lineCap='round';ctx.lineJoin='round';
+
+  // Draw edges first
+  positions.forEach(({x,y},node)=>{
+    const drawEdge=(child)=>{
+      if(!child)return;
+      const cp=positions.get(child);if(!cp)return;
+      ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(cp.x,cp.y);
+      ctx.strokeStyle='rgba(251,191,36,.35)';ctx.lineWidth=2.2;ctx.stroke();
+    };
+    if(node.left)drawEdge(node.left);
+    if(node.right)drawEdge(node.right);
+  });
+
+  // Draw nodes
+  positions.forEach(({x,y},node)=>{
+    // circle background
+    ctx.beginPath();ctx.arc(x,y,R,0,Math.PI*2);
+    ctx.fillStyle='#111827';ctx.fill();
+    ctx.strokeStyle='#fbbf24';ctx.lineWidth=2.2;ctx.stroke();
+    // value text
+    ctx.fillStyle='#f0f0f0';ctx.font=`700 ${R>14?11:10}px JetBrains Mono,monospace`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(String(node.val),x,y);
+  });
+
+  // Root label
+  if(tree.root){
+    const rp=positions.get(tree.root);
+    if(rp){ctx.fillStyle='#fbbf24';ctx.font='700 8px JetBrains Mono,monospace';ctx.textAlign='center';ctx.fillText('root',rp.x,rp.y-R-8);}
+  }
+}
+
+function buildBSTBody(addr, tree) {
+  return `<div class="bst-wrap">
+    <div class="bst-lbl">In-order Traversal: <span id="bst-io-${addr}">—</span></div>
+    <div class="bst-canvas"><canvas id="bstcanv-${addr}" width="240" height="140"></canvas></div>
+    <div class="bst-ops ds-ops">
+      <input class="op-in" id="opv-${addr}" placeholder="number"/>
+      <button class="op-btn op-add" onclick="bstAdd('${addr}')">insert</button>
+      <button class="op-btn op-rem" onclick="bstRemove('${addr}')">delete</button>
+    </div>
+  </div>`;
+}
+
+function refreshBST(addr) {
+  const obj=S.objs.get(addr);if(!obj||!obj.bstTree)return;
+  const inorder=obj.bstTree.inorder();
+  const ioEl=document.getElementById('bst-io-'+addr);
+  const ovalEl=document.getElementById('oval-'+addr);
+  if(ioEl)ioEl.textContent=inorder.length?inorder.join(' < '):'(empty)';
+  if(ovalEl)ovalEl.textContent=`BST{${inorder.join(', ')}}`;
+  setTimeout(()=>drawBSTCanvas(addr),40);
+}
+
+window.bstAdd=function(addr){
+  const obj=S.objs.get(addr);if(!obj||!obj.bstTree)return;
+  const vEl=document.getElementById('opv-'+addr);
+  const val=vEl?vEl.value.trim():'';
+  if(!val||isNaN(parseFloat(val))){setMsg('Enter a numeric value','err');return;}
+  const ok=obj.bstTree.insert(val);
+  if(vEl)vEl.value='';
+  if(!ok){setMsg(`${val} already in BST`,'err');return;}
+  refreshBST(addr);
+  setMsg(`BST.insert(${val}) ✓`,'ok');
+};
+
+window.bstRemove=function(addr){
+  const obj=S.objs.get(addr);if(!obj||!obj.bstTree)return;
+  const vEl=document.getElementById('opv-'+addr);
+  const val=vEl?vEl.value.trim():'';
+  if(!val||isNaN(parseFloat(val))){setMsg('Enter a numeric value','err');return;}
+  obj.bstTree.remove(parseFloat(val));
+  if(vEl)vEl.value='';
+  refreshBST(addr);
+  setMsg(`BST.delete(${val}) ✓`,'ok');
+};
+
+// ─── Add heap object ───
+function addHeapObj(addr,type,displayVal,varName,isPool,isCache,isDS,dsData,extra){
+  const ck=isPool?'pool':'heap';
+  const canvas=document.getElementById(ck+'-canvas');
+  document.getElementById(ck+'-empty').classList.add('gone');
+  const pos=findPos(ck);
+  const el=document.createElement('div');
+  const isBST=type==='BST';
+  const isLL=type==='LinkedList';
+  el.className=`hobj${isPool?' pool-o':isBST?' bst-o':isLL?' ll-o':isDS?' ds-o':''}`;
+  el.id='obj-'+addr;el.style.left=pos.x+'px';el.style.top=pos.y+'px';
+  const badge=isPool?'<div class="obadge interned">⚑ INTERNED</div>':isCache?'<div class="obadge cache">⚑ CACHE −128…127</div>':isBST?'<div class="obadge bst">◈ BST</div>':isLL?'<div class="obadge ll">◈ LinkedList</div>':isDS?`<div class="obadge ds">◈ ${esc(type)}</div>`:'';
+  let body='';
+  if(isBST)body=buildBSTBody(addr,extra?.bstTree);
+  else if(isLL)body=buildLLBody(addr,dsData);
+  else if(isDS&&dsData)body=buildDSBody(addr,type,dsData);
+  el.innerHTML=`<div class="oh"><div class="otype">${esc(type)}</div><div class="oaddr">${esc(addr)}</div></div><div class="orefs" id="refs-${addr}">${esc(varName)}</div><div class="oval" id="oval-${addr}">${esc(displayVal)}</div>${badge}${body}`;
+  makeDraggable(el,addr,ck);
+  canvas.appendChild(el);
+  const objData={type,val:displayVal,refs:[varName],el,isPool,isCache,isDS,dsData,x:pos.x,y:pos.y,addr};
+  if(isBST)objData.bstTree=extra.bstTree;
+  S.objs.set(addr,objData);
+  if(isBST)setTimeout(()=>drawBSTCanvas(addr),80);
+}
+
+function addRefToObj(addr,name){
+  const o=S.objs.get(addr);if(!o||o.refs.includes(name))return;
+  o.refs.push(name);const el=document.getElementById('refs-'+addr);if(el)el.textContent=o.refs.join(', ');
+}
+
+// ─── Draggable ───
+function makeDraggable(el,addr,ck){
+  el.addEventListener('mousedown',e=>{
+    if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT'||e.target.tagName==='CANVAS')return;
+    if(e.button!==0)return;e.preventDefault();
+    const ox=el.offsetLeft,oy=el.offsetTop,sx=e.clientX,sy=e.clientY;
+    el.style.transition='none';el.style.zIndex=999;
+    const sc=ZOOM[ck]||1;
+    const mv=ev=>{const x=Math.max(0,ox+(ev.clientX-sx)/sc),y=Math.max(0,oy+(ev.clientY-sy)/sc);el.style.left=x+'px';el.style.top=y+'px';const o=S.objs.get(addr);if(o){o.x=x;o.y=y;}requestAnimationFrame(drawArrows);};
+    const up=()=>{el.style.zIndex=3;document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
+    document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+  });
+}
+
+// ─── Arrows ───
+function drawArrows(){
+  const svg=document.getElementById('arrow-svg');
+  svg.querySelectorAll('.ap').forEach(e=>e.remove());
+  S.vars.forEach(v=>{
+    if(v.isPrim||!v.addr)return;
+    const ve=document.getElementById('var-'+v.id),oe=document.getElementById('obj-'+v.addr);
+    if(!ve||!oe)return;
+    const obj=S.objs.get(v.addr);
+    const vr=ve.getBoundingClientRect(),or_=oe.getBoundingClientRect();
+    const x1=vr.right,y1=vr.top+vr.height/2,x2=or_.left,y2=or_.top+or_.height/2;
+    const gap=Math.max(50,(x2-x1)*.45);
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('class','ap');
+    path.setAttribute('d',`M${x1},${y1} C${x1+gap},${y1} ${x2-gap},${y2} ${x2},${y2}`);
+    path.setAttribute('fill','none');
+    const col=obj?.isPool?'#fb923c':obj?.type==='BST'?'#fbbf24':obj?.type==='LinkedList'?'#2dd4bf':obj?.isDS?'#a78bfa':'#38bdf8';
+    const mk=obj?.isPool?'url(#ah-orange)':obj?.type==='BST'?'url(#ah-yellow)':obj?.type==='LinkedList'?'url(#ah-teal)':obj?.isDS?'url(#ah-purple)':'url(#ah-blue)';
+    path.setAttribute('stroke',col);path.setAttribute('stroke-width','1.8');path.setAttribute('stroke-dasharray','6 4');path.setAttribute('stroke-linecap','round');path.setAttribute('marker-end',mk);path.setAttribute('opacity','0.82');
+    path.style.animation='af 1.2s linear infinite';
+    svg.appendChild(path);
+  });
+}
+const _st=document.createElement('style');_st.textContent='@keyframes af{to{stroke-dashoffset:-10}}';document.head.appendChild(_st);
+
+// ─── processDecl ───
+function processDecl(decl){
+  if(!decl)return;
+
+  if(decl.kind==='method'){
+    const{varName,method,args}=decl;
+    const addr=S.nameToAddr.get(varName);
+    if(!addr){setMsg(`"${varName}" not declared yet`,'err');return;}
+    const obj=S.objs.get(addr);
+    if(!obj){setMsg(`"${varName}" not found`,'err');return;}
+
+    // BST methods
+    if(obj.type==='BST'){
+      const val=args[0]||'';
+      if(method==='add'||method==='insert'){if(!obj.bstTree.insert(val)){setMsg(`${val} already in BST`,'err');return;}refreshBST(addr);}
+      else if(method==='remove'||method==='delete'){obj.bstTree.remove(parseFloat(val));refreshBST(addr);}
+      return;
+    }
+
+    // LinkedList methods
+    if(obj.type==='LinkedList'){
+      const d=obj.dsData,val=args[0]||'';
+      if(method==='add'||method==='addLast'||method==='offer'){(d.items=d.items||[]).push(val);}
+      else if(method==='addFirst'){(d.items=d.items||[]).unshift(val);}
+      else if(method==='remove'||method==='removeFirst'||method==='poll'||method==='pollFirst'){
+        if(val&&!isNaN(parseInt(val))&&args.length>0&&isNaN(parseFloat(val))===false&&/^\d+$/.test(val)===false){
+          // remove by value
+          const idx=(d.items||[]).indexOf(val);if(idx>=0)d.items.splice(idx,1);
+        } else if(val){const idx=(d.items||[]).indexOf(val);if(idx>=0)d.items.splice(idx,1);else if(d.items.length)d.items.shift();}
+        else{if((d.items||[]).length)d.items.shift();}
+      }
+      else if(method==='removeLast'||method==='pollLast'){if((d.items||[]).length)d.items.pop();}
+      refreshLL(addr);return;
+    }
+
+    // Generic DS
+    if(!obj.isDS){setMsg(`"${varName}" is not a data structure`,'err');return;}
+    const{type,dsData:d}=obj;
+    const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
+    const isSet=type==='HashSet'||type==='TreeSet';
+    if(method==='add'||method==='offer'||method==='addFirst'||method==='addLast'){const val=args[0]||'';if(!val)return;if(isSet&&(d.items||[]).includes(val))return;(d.items=d.items||[]).push(val);}
+    else if(method==='push'){(d.items=d.items||[]).push(args[0]||'');}
+    else if(method==='put'){const[k,v]=args;if(!k)return;const idx=(d.entries||[]).findIndex(e=>e.k===k);if(idx>=0)d.entries[idx].v=v||'';else(d.entries=d.entries||[]).push({k,v:v||''});}
+    else if(method==='remove'||method==='pop'||method==='removeFirst'||method==='removeLast'||method==='poll'){if(isMap){d.entries=(d.entries||[]).filter(e=>e.k!==args[0]);}else if(args[0]&&isSet){d.items=(d.items||[]).filter(x=>x!==args[0]);}else{if((d.items||[]).length)d.items.pop();}}
+    refreshDS(addr);
+    return;
+  }
+
+  if(decl.kind==='array'){
+    const{type,name,items}=decl;const addr=nAddr();
+    const dsData={items:[...items]};
+    addHeapObj(addr,type,`[${items.join(', ')}]`,name,false,false,true,dsData,null);
+    const id=`v${Date.now()}${Math.random().toString(36).slice(2,5)}`;
+    const v={id,name,type,isPrim:false,addr,value:null,meta:{ds:type},el:null};
+    S.vars.push(v);S.nameToAddr.set(name,addr);addVarCard(v);return;
+  }
+
+  if(decl.kind==='ds'){
+    const{type,name}=decl;const addr=nAddr();
+    const id=`v${Date.now()}${Math.random().toString(36).slice(2,5)}`;
+
+    if(type==='BST'){
+      const bstTree=new BinarySearchTree();
+      addHeapObj(addr,'BST','BST{}',name,false,false,true,null,{bstTree});
+      const v={id,name,type:'BST',isPrim:false,addr,value:null,meta:{ds:'BST'},el:null};
+      S.vars.push(v);S.nameToAddr.set(name,addr);addVarCard(v);return;
+    }
+
+    if(type==='LinkedList'){
+      const dsData={items:[]};
+      addHeapObj(addr,'LinkedList','LinkedList[]',name,false,false,true,dsData,null);
+      const v={id,name,type:'LinkedList',isPrim:false,addr,value:null,meta:{ds:'LinkedList'},el:null};
+      S.vars.push(v);S.nameToAddr.set(name,addr);addVarCard(v);return;
+    }
+
+    const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
+    const dsData=isMap?{entries:[]}:{items:[]};
+    addHeapObj(addr,type,isMap?'{}':'[]',name,false,false,true,dsData,null);
+    const v={id,name,type,isPrim:false,addr,value:null,meta:{ds:type},el:null};
+    S.vars.push(v);S.nameToAddr.set(name,addr);addVarCard(v);return;
+  }
+
+  // Normal var
+  const{type,name,value:rawVal}=decl;
+  const id=`v${Date.now()}${Math.random().toString(36).slice(2,5)}`;
+  let resolved=type==='var'?inferType(rawVal):type;
+  const isPrim=PRIMS.has(resolved);
+  const val=normalizeVal(resolved,rawVal);
+  const v={id,name,type:resolved,isPrim,addr:null,value:val,meta:null,el:null};
+  if(val===null){S.vars.push(v);S.nameToAddr.set(name,null);addVarCard(v);return;}
+  if(isPrim){S.vars.push(v);S.nameToAddr.set(name,null);addVarCard(v);return;}
+  if(resolved==='String'&&!/^new\s+String/.test(val)){
+    if(S.strPool.has(val)){const a=S.strPool.get(val);v.addr=a;v.meta={pool:true};S.vars.push(v);S.nameToAddr.set(name,a);addVarCard(v);addRefToObj(a,name);}
+    else{const a=nAddr();S.strPool.set(val,a);addHeapObj(a,'String',val,name,true,false,false,null,null);v.addr=a;v.meta={pool:true};S.vars.push(v);S.nameToAddr.set(name,a);addVarCard(v);}
+    return;
+  }
+  if(resolved==='String'){
+    const inner=val.match(/new\s+String\s*\(\s*"(.*)"\s*\)/);const a=nAddr();
+    addHeapObj(a,'String',inner?`"${inner[1]}"`:`"?"`,name,false,false,false,null,null);
+    v.addr=a;S.vars.push(v);S.nameToAddr.set(name,a);addVarCard(v);return;
+  }
+  if(resolved==='Integer'){
+    const num=parseInt(val);
+    if(!isNaN(num)&&num>=-128&&num<=127){
+      const key='C'+num;
+      if(S.intCache.has(key)){const a=S.intCache.get(key);v.addr=a;v.meta={cache:true};S.vars.push(v);S.nameToAddr.set(name,a);addVarCard(v);addRefToObj(a,name);}
+      else{const a=nAddr();S.intCache.set(key,a);addHeapObj(a,'Integer',String(num),name,false,true,false,null,null);v.addr=a;v.meta={cache:true};S.vars.push(v);S.nameToAddr.set(name,a);addVarCard(v);}
+    }else{const a=nAddr();const n=parseInt(val);addHeapObj(a,'Integer',String(isNaN(n)?0:n),name,false,false,false,null,null);v.addr=a;S.vars.push(v);S.nameToAddr.set(name,a);addVarCard(v);}
+    return;
+  }
+  const a=nAddr();
+  addHeapObj(a,resolved,String(val||'?'),name,false,false,false,null,null);
+  v.addr=a;S.vars.push(v);S.nameToAddr.set(name,a);addVarCard(v);
+}
+
+// ─── Run ───
+function run(){
+  clearAll(true);
+  const lines=document.getElementById('code').value.split('\n');
+  const errs=[],decls=[];
+  lines.forEach((line,i)=>{
+    const t=line.trim();
+    if(!t||t.startsWith('//')||t.startsWith('/*')||t==='{'||t==='}')return;
+    const p=parseLine(t);
+    if(!p)errs.push(i+1);else decls.push(p);
+  });
+  if(errs.length){setMsg(`Cannot parse line ${errs[0]} — press ? Help for syntax`,'err');return;}
+  if(!decls.length){setMsg('No declarations found','err');return;}
+  decls.forEach(processDecl);
+  setTimeout(()=>{drawArrows();updateStats();},80);
+  setMsg(`✓ ${decls.length} statement${decls.length!==1?'s':''} processed`,'ok');
+}
+
+// ─── Clear ───
+function clearAll(silent=false){
+  S={vars:[],objs:new Map(),strPool:new Map(),intCache:new Map(),nameToAddr:new Map(),addrCtr:0x1000};
+  document.getElementById('slist').innerHTML='<div class="stack-empty" id="sempty">Write Java code<br>and press ▶ Run</div>';
+  document.getElementById('heap-canvas').innerHTML='';
+  document.getElementById('pool-canvas').innerHTML='';
+  document.getElementById('heap-empty').classList.remove('gone');
+  document.getElementById('pool-empty').classList.remove('gone');
+  document.getElementById('arrow-svg').querySelectorAll('.ap').forEach(e=>e.remove());
+  updateStats();if(!silent)setMsg('Cleared','ok');
+}
+
+// ─── Scope Pop ───
+let scopeSel=new Set();
+function showScopePanel(){
+  if(!S.vars.length){setMsg('No variables on stack','err');return;}
+  scopeSel.clear();
+  const list=document.getElementById('scope-var-list');list.innerHTML='';
+  S.vars.forEach(v=>{
+    const row=document.createElement('div');row.className='scope-var';row.id='scope-row-'+v.id;
+    row.innerHTML=`<label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="sc-${v.id}" style="accent-color:var(--yellow)"><span><span class="scope-var-type">${esc(v.type)}</span> <span class="scope-var-name">${esc(v.name)}</span></span><span style="margin-left:auto;font-size:7px;color:var(--dim)">${v.isPrim?'primitive':v.addr?v.addr:'null'}</span></label>`;
+    row.addEventListener('change',()=>{const c=document.getElementById('sc-'+v.id);if(c.checked)scopeSel.add(v.id);else scopeSel.delete(v.id);row.style.background=c.checked?'rgba(251,191,36,.08)':'';row.style.borderColor=c.checked?'rgba(251,191,36,.3)':'';});
+    list.appendChild(row);
+  });
+  document.getElementById('scope-overlay').classList.add('show');
+}
+function hideScopePanel(){document.getElementById('scope-overlay').classList.remove('show');}
+function executeScopePop(){
+  if(!scopeSel.size){setMsg('Select at least one variable','err');return;}
+  hideScopePanel();
+  const toPop=S.vars.filter(v=>scopeSel.has(v.id));
+  toPop.forEach((v,i)=>{
+    const el=document.getElementById('var-'+v.id);
+    if(el)setTimeout(()=>{el.classList.add('popping');el.addEventListener('animationend',()=>el.remove(),{once:true});},i*120);
+  });
+  setTimeout(()=>{
+    const poppedIds=new Set(toPop.map(v=>v.id));
+    S.vars=S.vars.filter(v=>!poppedIds.has(v.id));
+    const remainAddrs=new Set(S.vars.filter(v=>v.addr).map(v=>v.addr));
+    toPop.forEach(v=>{
+      if(!v.addr)return;
+      if(!remainAddrs.has(v.addr)){
+        const el=document.getElementById('obj-'+v.addr);
+        if(el){el.classList.add('gc-fade');el.addEventListener('animationend',()=>{el.remove();S.objs.delete(v.addr);S.strPool.forEach((a,k)=>{if(a===v.addr)S.strPool.delete(k);});S.intCache.forEach((a,k)=>{if(a===v.addr)S.intCache.delete(k);});updateStats();drawArrows();if(![...S.objs.values()].some(o=>!o.isPool))document.getElementById('heap-empty').classList.remove('gone');if(![...S.objs.values()].some(o=>o.isPool))document.getElementById('pool-empty').classList.remove('gone');},{once:true});}
+      }else{const o=S.objs.get(v.addr);if(o){o.refs=o.refs.filter(r=>r!==v.name);const re=document.getElementById('refs-'+v.addr);if(re)re.textContent=o.refs.join(', ');}}
+    });
+    toPop.forEach(v=>S.nameToAddr.delete(v.name));
+    updateStats();drawArrows();
+    if(!S.vars.length)document.getElementById('slist').innerHTML='<div class="stack-empty" id="sempty">Write Java code<br>and press ▶ Run</div>';
+    setMsg(`⏏ ${toPop.length} var${toPop.length!==1?'s':''} popped — orphans GC'd`,'ok');
+  },toPop.length*120+200);
+}
+
+// ─── Stats ───
+function updateStats(){
+  const poolN=[...S.objs.values()].filter(o=>o.isPool).length;
+  [['ss',S.vars.length],['sh',S.objs.size-poolN],['sp',poolN]].forEach(([id,n])=>{
+    const el=document.getElementById(id);
+    if(el.textContent!==String(n)){el.textContent=n;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');el.addEventListener('transitionend',()=>el.classList.remove('pop'),{once:true});}
+  });
+}
+function setMsg(t,tp='idle'){const e=document.getElementById('msg');e.textContent=t;e.className=`editor-msg ${tp}`;}
+
+// ─── Editor ───
+const codeEl=document.getElementById('code'),lnEl=document.getElementById('ln');
+function syncLn(){const n=codeEl.value.split('\n').length;lnEl.textContent=Array.from({length:n},(_,i)=>i+1).join('\n');}
+codeEl.addEventListener('input',syncLn);
+codeEl.addEventListener('scroll',()=>{lnEl.scrollTop=codeEl.scrollTop;});
+codeEl.addEventListener('keydown',e=>{
+  if(e.key==='Tab'){e.preventDefault();const s=codeEl.selectionStart;codeEl.value=codeEl.value.slice(0,s)+'  '+codeEl.value.slice(codeEl.selectionEnd);codeEl.selectionStart=codeEl.selectionEnd=s+2;syncLn();}
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();run();}
+});
+document.getElementById('slist').addEventListener('scroll',()=>requestAnimationFrame(drawArrows));
+window.addEventListener('resize',()=>requestAnimationFrame(drawArrows));
+function toggleHelp(){document.getElementById('help-overlay').classList.toggle('show');}
+document.getElementById('help-overlay').addEventListener('click',e=>{if(e.target.id==='help-overlay')toggleHelp();});
+document.getElementById('scope-overlay').addEventListener('click',e=>{if(e.target.id==='scope-overlay')hideScopePanel();});
+
+let _last=0;
+(function loop(ts){if(ts-_last>60&&S.vars.some(v=>!v.isPrim&&v.addr)){drawArrows();_last=ts;}requestAnimationFrame(loop);})(0);
+
+// ─── Boot Demo ───
+window.addEventListener('load',()=>{
+  const demo=
+`// Primitives
+int age = 25;
+double gpa = 9.2;
+
+// Strings
+String name = "Neeraj";
+String name2 = "Neeraj";
+
+// LinkedList — visual node chain
+LinkedList<Integer> ll = new LinkedList<>();
+ll.add(10);
+ll.add(20);
+ll.add(30);
+ll.add(40);
+
+// BST — Binary Search Tree
+BST tree = new BST();
+tree.add(50);
+tree.add(30);
+tree.add(70);
+tree.add(20);
+tree.add(40);
+tree.add(60);
+tree.add(80);
+
+// ArrayList
+ArrayList<String> list = new ArrayList<>();
+list.add(Alice);
+list.add(Bob);
+
+// HashMap
+HashMap<String, String> map = new HashMap<>();
+map.put(name, Neeraj);
+map.put(city, Delhi);`;
+  codeEl.value=demo;syncLn();setTimeout(run,300);
+});
+</script>
+</body>
+</html>
