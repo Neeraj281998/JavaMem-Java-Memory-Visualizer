@@ -8,7 +8,7 @@ JavaMem parses simplified Java code you type and renders an animated, interactiv
 
 ## 🚀 Live Demo
 
-Open `newVisualIndex.html` directly in any modern browser on a laptop or tablet. That's it.
+Open `index.html` directly in any modern browser on a laptop or tablet. That's it.
 
 > ⚠️ Optimized for larger screens (laptop/tablet). A mobile warning is shown on small viewports.
 
