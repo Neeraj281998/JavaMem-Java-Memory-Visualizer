@@ -55,20 +55,33 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12
 .btn-arr{background:transparent;color:var(--green);border:1px solid rgba(52,211,153,.35);flex:0 0 auto;padding:7px 10px}.btn-arr:hover{background:rgba(52,211,153,.1)}
 .btn-help{background:transparent;color:var(--dim);border:1px solid var(--border);flex:0 0 auto;padding:7px 10px}.btn-help:hover{background:var(--surf2)}
 
-/* STACK */
-.stack-pnl{width:248px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--border);background:var(--surf)}
+/* ── FIX #8: STACK FRAMES ── */
+.stack-pnl{width:260px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--border);background:var(--surf)}
 .stack-meta{padding:5px 14px;border-bottom:1px solid var(--border);font-size:8px;color:var(--dim);display:flex;justify-content:space-between;align-items:center}
 .scope-indicator{font-size:7px;padding:2px 7px;border-radius:3px;background:rgba(251,191,36,.1);color:var(--yellow);border:1px solid rgba(251,191,36,.2)}
-.stack-list{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column-reverse;gap:5px}
+.stack-list{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:0}
 .stack-list::-webkit-scrollbar{width:3px}.stack-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 .stack-empty{display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:9px;flex:1;text-align:center;padding:20px;line-height:1.8}
 .stack-base{padding:6px 14px;border-top:2px dashed var(--border);font-size:8px;color:var(--dim);text-align:center}
-.vcard{padding:9px 11px;background:var(--surf2);border:1px solid var(--border);border-left:3px solid transparent;border-radius:5px;font-size:9px;line-height:1.5;opacity:0;transform:translateY(-8px) scale(.97);animation:cardIn .35s cubic-bezier(.34,1.56,.64,1) forwards;transition:background .2s,opacity .4s,transform .4s}
+
+/* Frame block */
+.frame-block{border:1px solid var(--border2);border-radius:6px;margin-bottom:6px;overflow:hidden;animation:frameIn .3s ease forwards}
+@keyframes frameIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.frame-block.popping{animation:framePop .5s ease-in forwards!important}
+@keyframes framePop{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-24px) scale(.9)}}
+.frame-hdr{padding:4px 10px;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:space-between;background:rgba(251,191,36,.08);border-bottom:1px solid var(--border);color:var(--yellow);letter-spacing:.5px}
+.frame-hdr .frame-name{font-family:var(--sans)}
+.frame-hdr .frame-tag{font-size:7px;color:var(--dim)}
+.frame-vars{display:flex;flex-direction:column;gap:4px;padding:6px 8px}
+.frame-active{border-color:rgba(251,191,36,.4);box-shadow:0 0 8px rgba(251,191,36,.08)}
+.frame-inactive{border-color:var(--border);opacity:.7}
+.frame-inactive .frame-hdr{background:rgba(255,255,255,.02);color:var(--dim)}
+
+.vcard{padding:8px 10px;background:var(--surf2);border:1px solid var(--border);border-left:3px solid transparent;border-radius:5px;font-size:9px;line-height:1.5;transition:background .2s}
 .vcard:hover{background:var(--surf3)}
-@keyframes cardIn{to{opacity:1;transform:translateY(0) scale(1)}}
 .vcard.prim{border-left-color:var(--orange)}.vcard.ref{border-left-color:var(--blue)}.vcard.nullv{border-left-color:var(--dim)}
-.vcard.popping{animation:scopePop .6s ease-in forwards!important}
-@keyframes scopePop{0%{opacity:1;transform:translateY(0) scale(1);background:rgba(248,113,113,.15)}40%{transform:translateY(-12px) scale(1.04);background:rgba(248,113,113,.25)}100%{opacity:0;transform:translateY(-30px) scale(.8)}}
+.vcard.popping{animation:cardPop .5s ease-in forwards!important}
+@keyframes cardPop{0%{opacity:1}100%{opacity:0;transform:translateX(10px)}}
 .vc-type{font-size:7px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
 .vc-name{color:var(--text);font-weight:700;font-size:10px;margin-top:1px}
 .vc-val{margin-top:3px;font-size:9px}
@@ -78,7 +91,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12
 /* MEMORY */
 .memory{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .region{position:relative;flex:1;overflow:hidden;border-bottom:1px solid var(--border);min-height:0}
-.region:last-child{flex:0 0 175px;border-bottom:none}
+/* FIX #6: Pool is sub-region inside heap visually — we make it a smaller distinct strip */
+.region.pool-region{flex:0 0 190px;border-bottom:none;border-top:2px solid rgba(251,146,60,.25);background:rgba(251,146,60,.02)}
 .reg-hdr{padding:7px 12px;border-bottom:1px solid var(--border);font-family:var(--sans);font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:2px;display:flex;align-items:center;gap:6px;position:relative;z-index:4;flex-shrink:0}
 .reg-hdr.heap{color:var(--green)}.reg-hdr.pool{color:var(--orange)}
 .reg-hdr::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,currentColor,transparent);opacity:.15}
@@ -90,13 +104,23 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12
 .reg-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--dim);font-size:9px;opacity:.3;pointer-events:none;z-index:1;transition:opacity .4s}
 .reg-empty.gone{opacity:0}
 
+/* FIX #6: Pool note tag */
+.pool-note{font-size:7px;color:rgba(251,146,60,.6);margin-left:6px;font-weight:400;font-family:var(--mono);text-transform:none;letter-spacing:0}
+
 /* HEAP OBJECTS */
-.hobj{position:absolute;background:var(--surf2);border:1.5px solid var(--green);border-radius:8px;min-width:145px;max-width:260px;padding:10px 12px;box-shadow:0 6px 20px rgba(0,0,0,.5);cursor:grab;user-select:none;opacity:0;transform:scale(.45);animation:objPop .4s cubic-bezier(.34,1.56,.64,1) forwards;z-index:3;transition:box-shadow .2s}
+.hobj{position:absolute;background:var(--surf2);border:1.5px solid var(--green);border-radius:8px;min-width:145px;max-width:270px;padding:10px 12px;box-shadow:0 6px 20px rgba(0,0,0,.5);cursor:grab;user-select:none;opacity:0;transform:scale(.45);animation:objPop .4s cubic-bezier(.34,1.56,.64,1) forwards;z-index:3;transition:box-shadow .2s,border-color .3s,opacity .3s}
 .hobj.pool-o{border-color:var(--orange)}.hobj.ds-o{border-color:var(--purple)}.hobj.ll-o{border-color:var(--teal)}.hobj.bst-o{border-color:var(--yellow)}
 .hobj:hover{box-shadow:0 10px 30px rgba(0,0,0,.7)}.hobj:active{cursor:grabbing}
-.hobj.gc-fade{animation:gcFade 0.8s ease-out forwards!important}
-@keyframes gcFade{0%{opacity:1;border-color:var(--red)}60%{opacity:.3;border-color:var(--red);filter:blur(1px)}100%{opacity:0;transform:scale(.6)}}
+
+/* FIX #5: Two-phase GC */
+.hobj.gc-eligible{border-color:var(--red)!important;box-shadow:0 0 12px rgba(248,113,113,.3)!important;animation:gcPulse 1s ease-in-out infinite!important}
+@keyframes gcPulse{0%,100%{box-shadow:0 0 8px rgba(248,113,113,.25)}50%{box-shadow:0 0 20px rgba(248,113,113,.5)}}
+.hobj.gc-fade{animation:gcFade 0.7s ease-out forwards!important}
+@keyframes gcFade{0%{opacity:1;border-color:var(--red)}60%{opacity:.3;filter:blur(1px)}100%{opacity:0;transform:scale(.55)}}
 @keyframes objPop{to{opacity:1;transform:scale(1)}}
+.gc-badge{display:inline-block;margin-top:5px;font-size:7px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(248,113,113,.15);color:var(--red);animation:gcBadgePulse 1s ease-in-out infinite}
+@keyframes gcBadgePulse{0%,100%{opacity:.7}50%{opacity:1}}
+
 .oh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
 .otype{font-size:7px;font-weight:700;text-transform:uppercase;background:rgba(255,255,255,.05);color:var(--dim);padding:2px 6px;border-radius:3px}
 .oaddr{font-size:7px;color:var(--dim)}
@@ -112,12 +136,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12
 /* DS shared */
 .ds-body{margin-top:7px;border-top:1px solid var(--border);padding-top:6px}
 .ds-lbl{font-size:7px;color:var(--dim);margin-bottom:3px;text-transform:uppercase;letter-spacing:.8px}
-.ds-items{display:flex;flex-direction:column;gap:2px;max-height:80px;overflow-y:auto}
-.ds-items::-webkit-scrollbar{width:2px}.ds-items::-webkit-scrollbar-thumb{background:var(--border2)}
-.ds-row{display:flex;align-items:center;gap:4px;font-size:9px;padding:2px 4px;border-radius:3px;background:rgba(255,255,255,.03)}
-.ds-idx{color:var(--orange);min-width:16px;text-align:right;flex-shrink:0;font-size:8px}
-.ds-sep{color:var(--dim);font-size:8px}
-.ds-v{color:var(--text);word-break:break-all}
 .ds-sz{font-size:7px;color:var(--dim);margin-top:3px}
 .ds-ops{margin-top:5px;display:flex;gap:3px;align-items:center;flex-wrap:wrap}
 .op-in{font-size:9px;padding:2px 5px;border-radius:4px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:var(--mono);width:80px;outline:none}
@@ -126,19 +144,64 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12
 .op-add{background:rgba(52,211,153,.15);color:var(--green)}.op-add:hover{background:rgba(52,211,153,.3)}
 .op-rem{background:rgba(248,113,113,.12);color:var(--red)}.op-rem:hover{background:rgba(248,113,113,.25)}
 
-/* ── LINKED LIST visualization ── */
-.ll-chain{display:flex;align-items:center;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:8px 6px;margin-top:8px;background:rgba(45,212,191,.05);border-radius:8px;border:1px solid rgba(45,212,191,.2);min-height:95px;max-height:105px}
-.ll-chain::-webkit-scrollbar{height:5px;border-radius:3px}.ll-chain::-webkit-scrollbar-thumb{background:var(--teal);border-radius:3px;opacity:0.6}.ll-chain::-webkit-scrollbar-thumb:hover{opacity:1}.ll-chain::-webkit-scrollbar-track{background:transparent}
-.ll-node{display:flex;align-items:center;flex-shrink:0;gap:0;animation:nodeIn .35s cubic-bezier(.34,1.56,.64,1)}
-@keyframes nodeIn{from{opacity:0;transform:scale(.6) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
-.ll-node-box{display:flex;flex-direction:column;border:2px solid var(--teal);border-radius:7px;overflow:hidden;min-width:52px;box-shadow:0 2px 10px rgba(45,212,191,.2);background:var(--surf2)}
-.ll-node-val{padding:8px 11px;font-size:11px;font-weight:700;color:var(--text);text-align:center;background:rgba(45,212,191,.15);min-height:28px;display:flex;align-items:center;justify-content:center}
-.ll-node-next{padding:4px 6px;font-size:7px;color:var(--teal);text-align:center;border-top:1px solid rgba(45,212,191,.3);background:rgba(45,212,191,.07);font-weight:600}
-.ll-arrow{font-size:16px;color:var(--teal);padding:0 5px;align-self:center;flex-shrink:0;font-weight:bold;opacity:0.8}
-.ll-null{font-size:9px;color:var(--dim);padding:6px 8px;border:2px dashed var(--border2);border-radius:5px;align-self:center;background:rgba(0,0,0,.2);font-weight:600}
-.ll-head-label{font-size:8px;color:var(--teal);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;font-weight:700}
+/* ── FIX #2: ARRAYLIST — horizontal cell grid ── */
+.al-grid{display:flex;flex-wrap:wrap;gap:3px;padding:6px;margin-top:6px;background:rgba(167,139,250,.05);border-radius:6px;border:1px solid rgba(167,139,250,.2);min-height:50px}
+.al-cell{display:flex;flex-direction:column;align-items:center;border:1.5px solid var(--purple);border-radius:5px;overflow:hidden;min-width:38px;animation:cellIn .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes cellIn{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+.al-cell-idx{font-size:7px;color:var(--purple);padding:2px 4px;background:rgba(167,139,250,.1);width:100%;text-align:center;border-bottom:1px solid rgba(167,139,250,.2)}
+.al-cell-val{font-size:10px;font-weight:700;color:var(--text);padding:5px 6px;text-align:center}
+.al-empty{font-size:8px;color:var(--dim);padding:8px;align-self:center}
+.al-note{font-size:7px;color:rgba(167,139,250,.6);margin-top:3px;font-style:italic}
 
-/* ── BST visualization ── */
+/* ── FIX #3: STACK DS — upward LIFO visual ── */
+.stk-tower{display:flex;flex-direction:column;gap:0;margin-top:6px;border:1px solid rgba(56,189,248,.25);border-radius:6px;overflow:hidden;background:rgba(56,189,248,.03)}
+.stk-tower-top{font-size:7px;color:var(--blue);text-align:center;padding:3px;background:rgba(56,189,248,.1);border-bottom:1px dashed rgba(56,189,248,.2);letter-spacing:1px}
+.stk-item{display:flex;align-items:center;justify-content:space-between;padding:5px 10px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text);animation:stkPush .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes stkPush{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.stk-item:last-child{border-bottom:none}
+.stk-item-label{font-size:7px;color:var(--blue);font-weight:400}
+.stk-bottom{font-size:7px;color:var(--dim);text-align:center;padding:3px;border-top:2px dashed var(--border)}
+.stk-empty-msg{font-size:8px;color:var(--dim);text-align:center;padding:10px}
+
+/* ── FIX #4: LINKEDLIST — separate node cards in heap ── */
+.ll-controller{margin-top:6px;border-top:1px solid var(--border);padding-top:6px}
+.ll-info{font-size:8px;color:var(--teal);background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.2);border-radius:4px;padding:4px 7px;margin-bottom:5px;line-height:1.5}
+/* Individual LL node cards live in heap as .hobj.ll-node-o */
+.hobj.ll-node-o{border-color:var(--teal);min-width:100px;max-width:130px}
+.ll-node-fields{margin-top:6px;border-top:1px solid rgba(45,212,191,.2);padding-top:5px}
+.ll-field{display:flex;justify-content:space-between;font-size:8px;padding:2px 0}
+.ll-field-name{color:var(--teal)}
+.ll-field-val{color:var(--text);font-weight:700}
+.ll-field-val.ptr{color:var(--blue);font-size:7.5px}
+
+/* ── FIX #1: HASHMAP — scrambled order display ── */
+.hm-warn{font-size:7px;color:var(--yellow);background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:3px;padding:3px 6px;margin-bottom:4px;display:flex;align-items:center;gap:4px}
+.hm-buckets{display:flex;flex-direction:column;gap:2px;max-height:90px;overflow-y:auto}
+.hm-buckets::-webkit-scrollbar{width:2px}.hm-buckets::-webkit-scrollbar-thumb{background:var(--border2)}
+.hm-row{display:flex;align-items:center;gap:4px;font-size:9px;padding:2px 4px;border-radius:3px;background:rgba(255,255,255,.03)}
+.hm-bucket{color:var(--dim);font-size:7px;min-width:28px;flex-shrink:0}
+.hm-key{color:var(--orange)}.hm-sep{color:var(--dim);font-size:8px}.hm-val{color:var(--text)}
+
+/* ── FIX #1: HASHSET — scrambled ── */
+.hs-warn{font-size:7px;color:var(--yellow);background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:3px;padding:3px 6px;margin-bottom:4px}
+.hs-items{display:flex;flex-wrap:wrap;gap:4px;max-height:70px;overflow-y:auto;padding:4px}
+.hs-chip{font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);color:var(--text)}
+
+/* TreeMap/TreeSet — sorted badge */
+.tm-note{font-size:7px;color:var(--green);background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);border-radius:3px;padding:2px 5px;margin-bottom:4px}
+
+/* ── LINKED LIST visualization (controller card — compact) ── */
+.ll-chain-mini{display:flex;align-items:center;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:5px 4px;background:rgba(45,212,191,.04);border-radius:5px;border:1px solid rgba(45,212,191,.15);min-height:46px}
+.ll-chain-mini::-webkit-scrollbar{height:4px}.ll-chain-mini::-webkit-scrollbar-thumb{background:var(--teal);border-radius:2px}
+.ll-mn{display:flex;align-items:center;flex-shrink:0;animation:nodeIn .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes nodeIn{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+.ll-mn-box{display:flex;flex-direction:column;border:1.5px solid var(--teal);border-radius:5px;overflow:hidden;min-width:38px;background:var(--surf2)}
+.ll-mn-val{padding:4px 7px;font-size:9px;font-weight:700;color:var(--text);text-align:center;background:rgba(45,212,191,.12)}
+.ll-mn-next{padding:2px 4px;font-size:6px;color:var(--teal);text-align:center;border-top:1px solid rgba(45,212,191,.2);background:rgba(45,212,191,.05)}
+.ll-arr{font-size:13px;color:var(--teal);padding:0 3px;align-self:center;opacity:.7}
+.ll-null{font-size:7px;color:var(--dim);padding:3px 5px;border:1px dashed var(--border2);border-radius:4px;align-self:center}
+
+/* BST visualization */
 .bst-wrap{margin-top:6px;border-top:1px solid var(--border);padding-top:6px}
 .bst-lbl{font-size:7px;color:var(--dim);margin-bottom:5px;text-transform:uppercase;letter-spacing:.8px}
 .bst-canvas{width:100%;overflow:hidden;border-radius:6px;background:rgba(251,191,36,.04);border:1px solid rgba(251,191,36,.15);display:flex;align-items:center;justify-content:center;min-height:140px;max-height:160px}
@@ -148,30 +211,34 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12
 /* ARROW SVG */
 #arrow-svg{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;overflow:visible}
 
-/* SCOPE */
+/* ── FIX #8: SCOPE / FRAME PUSH PANEL ── */
 .scope-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center}
 .scope-overlay.show{display:flex}
-.scope-box{background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:26px 30px;max-width:460px;width:92%;text-align:center}
-.scope-title{font-family:var(--sans);font-size:17px;font-weight:800;color:var(--yellow);margin-bottom:7px}
-.scope-sub{font-size:9px;color:var(--dim);margin-bottom:18px;line-height:1.7}
-.scope-vars{display:flex;flex-direction:column;gap:5px;margin-bottom:18px;max-height:200px;overflow-y:auto;text-align:left}
-.scope-var{padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surf2);font-size:9px;cursor:pointer;transition:background .15s,border-color .15s}
+.scope-box{background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:22px 26px;max-width:480px;width:92%;text-align:center}
+.scope-title{font-family:var(--sans);font-size:16px;font-weight:800;color:var(--yellow);margin-bottom:6px}
+.scope-sub{font-size:9px;color:var(--dim);margin-bottom:14px;line-height:1.7}
+/* pop tab */
+.scope-vars{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;max-height:180px;overflow-y:auto;text-align:left}
+.scope-var{padding:7px 11px;border-radius:6px;border:1px solid var(--border);background:var(--surf2);font-size:9px;cursor:pointer;transition:background .15s,border-color .15s}
 .scope-var-name{color:var(--text);font-weight:700}.scope-var-type{color:var(--dim);font-size:7px}
+
 .scope-actions{display:flex;gap:8px;justify-content:center}
-.scope-btn{padding:8px 18px;border-radius:6px;border:none;font-family:var(--mono);font-size:9px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.8px;transition:all .2s}
+.scope-btn{padding:7px 16px;border-radius:6px;border:none;font-family:var(--mono);font-size:9px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.8px;transition:all .2s}
 .scope-btn-pop{background:var(--yellow);color:#000}.scope-btn-pop:hover{opacity:.9}
+
 .scope-btn-cancel{background:transparent;color:var(--dim);border:1px solid var(--border)}.scope-btn-cancel:hover{color:var(--text)}
 
 /* HELP */
 .help-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center}
 .help-overlay.show{display:flex}
-.help-box{background:var(--surf);border:1px solid var(--border2);border-radius:10px;padding:22px;max-width:540px;width:92%;max-height:82vh;overflow-y:auto}
+.help-box{background:var(--surf);border:1px solid var(--border2);border-radius:10px;padding:22px;max-width:560px;width:92%;max-height:84vh;overflow-y:auto}
 .help-box::-webkit-scrollbar{width:3px}.help-box::-webkit-scrollbar-thumb{background:var(--border2)}
 .help-box h2{font-family:var(--sans);font-size:14px;color:var(--blue);margin-bottom:12px}
 .help-box h3{font-family:var(--sans);font-size:9px;color:var(--green);margin:12px 0 4px;text-transform:uppercase;letter-spacing:1px}
 .help-box pre{background:var(--bg);padding:8px;border-radius:6px;font-size:9px;color:var(--orange);border:1px solid var(--border);line-height:1.85;overflow-x:auto}
 .help-close{float:right;background:none;border:1px solid var(--red);color:var(--red);border-radius:4px;padding:3px 10px;cursor:pointer;font-family:var(--mono);font-size:9px}
 .help-note{font-size:8px;color:var(--dim);margin-top:8px;line-height:1.7;border-left:2px solid var(--border2);padding-left:8px}
+
 
 /* MOBILE */
 .mobile-overlay{display:none;position:fixed;inset:0;background:rgba(4,6,12,.97);z-index:999;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center}
@@ -216,7 +283,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12
   <div class="logo"><div class="logo-icon">☕</div>JavaMem</div>
   <div class="hdr-right">
     <div class="stats">
-      <div class="stat s-stack"><div class="stat-lbl">Stack</div><div class="stat-val" id="ss">0</div></div>
+      <div class="stat s-stack"><div class="stat-lbl">Stack Vars</div><div class="stat-val" id="ss">0</div></div>
       <div class="stat s-heap"><div class="stat-lbl">Heap</div><div class="stat-val" id="sh">0</div></div>
       <div class="stat s-pool"><div class="stat-lbl">Pool</div><div class="stat-val" id="sp">0</div></div>
     </div>
@@ -247,10 +314,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12
     </div>
   </div>
 
-  <!-- STACK -->
+  <!-- FIX #8: STACK with multi-frame support -->
   <div class="stack-pnl">
-    <div class="pnl-hdr"><span class="dot" style="background:var(--orange)"></span>Stack Frame · main()</div>
-    <div class="stack-meta"><span>Variables in scope</span><span class="scope-indicator">ACTIVE</span></div>
+    <div class="pnl-hdr"><span class="dot" style="background:var(--orange)"></span>Call Stack</div>
+    <div class="stack-meta">
+      <span id="frame-count-label">1 frame active</span>
+      <span class="scope-indicator" id="active-frame-label">main()</span>
+    </div>
     <div class="stack-list" id="slist">
       <div class="stack-empty" id="sempty">Write Java code<br>and press ▶ Run</div>
     </div>
@@ -260,8 +330,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12
   <!-- MEMORY -->
   <div class="memory">
     <div class="region" id="heap-reg">
+      <!-- FIX #6: Heap header clarifies pool lives inside heap -->
       <div class="reg-hdr heap">
-        Heap <small style="opacity:.5;font-weight:400;font-size:7px">· GC managed</small>
+        Heap <small style="opacity:.5;font-weight:400;font-size:7px">· GC managed · objects live here</small>
         <div class="reg-hdr-btns">
           <button class="reg-btn" onclick="autoArrange()">⊞</button>
           <button class="reg-btn" onclick="zoomRegion('heap',-1)">−</button>
@@ -274,9 +345,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12
       </div>
       <div class="reg-empty" id="heap-empty"><span style="font-size:26px">🧩</span><span>Objects appear here</span></div>
     </div>
-    <div class="region" id="pool-reg">
+    <!-- FIX #6: Pool is visually a sub-region inside heap area with note -->
+    <div class="region pool-region" id="pool-reg">
       <div class="reg-hdr pool">
-        String Pool <small style="opacity:.5;font-weight:400;font-size:7px">· interned</small>
+        String Pool
+        <span class="pool-note">↑ lives inside the Heap (Java 7+) — not a separate memory area</span>
         <div class="reg-hdr-btns">
           <button class="reg-btn" onclick="autoArrange('pool')">⊞</button>
         </div>
@@ -293,7 +366,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12
 <div class="scope-overlay" id="scope-overlay">
   <div class="scope-box">
     <div class="scope-title">⏏ End of Scope</div>
-    <div class="scope-sub">Select variables to pop off the stack.<br>Orphaned heap objects will be garbage collected.</div>
+    <div class="scope-sub">Select variables to pop off the stack. Orphaned heap objects become GC-eligible and will be collected after a delay.</div>
     <div class="scope-vars" id="scope-var-list"></div>
     <div class="scope-actions">
       <button class="scope-btn scope-btn-pop" onclick="executeScopePop()">Pop Selected</button>
@@ -307,42 +380,65 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12
   <div class="help-box">
     <button class="help-close" onclick="toggleHelp()">✕ Close</button>
     <h2>☕ JavaMem — Syntax Reference</h2>
+
     <h3>Primitives</h3>
     <pre>int age = 25;
 double gpa = 9.5;
 boolean active = true;
 char grade = 'A';</pre>
+
     <h3>Strings</h3>
-    <pre>String name = "Alice";           // → String Pool
-String s = new String("Alice");  // → Heap</pre>
+    <pre>String name = "Alice";           // → String Pool (inside Heap)
+String s = new String("Alice");  // → Heap (new object, not pooled)</pre>
+
     <h3>Arrays</h3>
     <pre>int[] scores = {95, 87, 76};</pre>
-    <h3>ArrayList / Stack</h3>
+
+    <h3>ArrayList</h3>
     <pre>ArrayList&lt;Integer&gt; list = new ArrayList&lt;&gt;();
 list.add(10);
 list.add(20);</pre>
-    <h3>LinkedList (visual node chain)</h3>
+
+    <h3>Stack</h3>
+    <pre>Stack&lt;String&gt; stk = new Stack&lt;&gt;();
+stk.push(A);
+stk.push(B);
+stk.pop();</pre>
+
+    <h3>LinkedList</h3>
     <pre>LinkedList&lt;Integer&gt; ll = new LinkedList&lt;&gt;();
 ll.add(10);
 ll.add(20);
 ll.add(30);
-ll.remove(20);  // removes by value</pre>
-    <h3>HashMap / HashSet</h3>
+ll.remove(20);</pre>
+
+    <h3>HashMap / TreeMap / LinkedHashMap</h3>
     <pre>HashMap&lt;String,String&gt; map = new HashMap&lt;&gt;();
-map.put("name", "Alice");
-HashSet&lt;String&gt; set = new HashSet&lt;&gt;();
-set.add("apple");</pre>
-    <h3>BST — Binary Search Tree (visual tree)</h3>
+map.put(name, Alice);
+TreeMap&lt;String,String&gt; tm = new TreeMap&lt;&gt;();
+LinkedHashMap&lt;String,String&gt; lhm = new LinkedHashMap&lt;&gt;();</pre>
+
+    <h3>HashSet / TreeSet</h3>
+    <pre>HashSet&lt;String&gt; set = new HashSet&lt;&gt;();
+set.add(apple);
+TreeSet&lt;String&gt; ts = new TreeSet&lt;&gt;();</pre>
+
+    <h3>BST — Binary Search Tree</h3>
     <pre>BST tree = new BST();
 tree.add(50);
 tree.add(30);
 tree.add(70);
-tree.add(20);
 tree.remove(30);</pre>
+
+    <h3>Integer Wrapper</h3>
+    <pre>Integer a = 100;  // from Integer cache [-128..127]
+Integer b = 200;  // new heap object — always use .equals()</pre>
+
     <h3>Scope Pop</h3>
-    <pre>Click ⏏ Scope → select variables → Pop
-Orphaned objects get GC'd with animation</pre>
-    <div class="help-note">Drag any object to reposition · ⊞ auto-arranges · zoom with − / +</div>
+    <pre>Click ⏏ Scope → select variables → Pop Selected
+Orphaned objects become GC-eligible and are collected after a delay.</pre>
+
+    <div class="help-note">Drag any heap object to reposition · ⊞ auto-arranges · zoom with − / +</div>
   </div>
 </div>
 
@@ -354,14 +450,23 @@ const PRIMS    = new Set(['int','long','short','byte','float','double','boolean'
 const WRAPPERS = new Set(['Integer','Long','Short','Byte','Float','Double','Boolean','Character']);
 const DS_TYPES = new Set(['ArrayList','LinkedList','HashMap','HashSet','Stack','ArrayDeque','TreeMap','TreeSet','LinkedHashMap','PriorityQueue','BST']);
 
+// ─── State ───
+// FIX #8: frames array — each frame has {id, name, vars:[]}
 let S = {
-  vars:[], objs:new Map(), strPool:new Map(), intCache:new Map(),
-  nameToAddr:new Map(), addrCtr:0x1000
+  frames: [],          // array of {id, name, vars}
+  activeFrameId: null,
+  objs: new Map(),
+  strPool: new Map(),
+  intCache: new Map(),
+  nameToAddr: new Map(),
+  addrCtr: 0x1000,
+  llNodes: new Map(),  // FIX #4: addr -> [node addr list] for LL
 };
 let ZOOM = { heap:1, pool:1 };
 
 const esc = s => { const d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML; };
 const nAddr = () => { S.addrCtr+=16; return '0x'+S.addrCtr.toString(16).toUpperCase().padStart(8,'0'); };
+const allVars = () => S.frames.flatMap(f=>f.vars);
 
 // ─── Mobile ───
 window.addEventListener('load', () => {
@@ -383,7 +488,7 @@ function autoArrange(region='heap') {
   const vp=document.getElementById(region+'-vp');
   if(!canvas||!vp) return;
   const W=(vp.getBoundingClientRect().width||600)/ZOOM[region];
-  const PAD=18, GAP=14, NW=175;
+  const PAD=18, GAP=14, NW=165;
   const cols=Math.max(1,Math.floor((W-PAD*2)/(NW+GAP)));
   let col=0, x=PAD, y=PAD, rowH=0;
   S.objs.forEach((obj,addr)=>{
@@ -408,30 +513,24 @@ function parseLine(raw) {
   if(!line) return null;
   let m;
 
-  // Method call: var.method(args)
   m=line.match(/^(\w+)\.(add|push|put|remove|pop|offer|addFirst|addLast|removeFirst|removeLast|poll|insert|delete)\s*\(([^)]*)\)$/);
   if(m) return{kind:'method',varName:m[1],method:m[2],args:splitArgs(m[3])};
 
-  // Array: type[] name = {...}
   m=line.match(/^(\w+)\s*\[\s*\]\s+(\w+)\s*=\s*\{([^}]*)\}$/);
   if(m) return{kind:'array',type:m[1]+'[]',name:m[2],items:splitArgs(m[3])};
 
-  // Array: type[] name = new type[n]
   m=line.match(/^(\w+)\s*\[\s*\]\s+(\w+)\s*=\s*new\s+\w+\s*\[(\d+)\]$/);
   if(m) return{kind:'array',type:m[1]+'[]',name:m[2],items:new Array(parseInt(m[3])).fill('0')};
 
-  // BST: BST name = new BST()
   m=line.match(/^BST\s+(\w+)\s*=\s*new\s+BST\s*\(\s*\)$/);
   if(m) return{kind:'ds',type:'BST',name:m[1]};
 
-  // DS: Type<...> name = new Type<>()
   m=line.match(/^(\w+)\s*(?:<[^>]*>)?\s+(\w+)\s*=\s*new\s+(\w+)\s*(?:<[^>]*>)?\s*\(\s*\)$/);
   if(m){
     const t=DS_TYPES.has(m[1])?m[1]:DS_TYPES.has(m[3])?m[3]:null;
     if(t) return{kind:'ds',type:t,name:m[2]};
   }
 
-  // Normal var
   m=line.match(/^(?:final\s+)?(\w+)\s*(?:<[^>]*>)?\s+(\w+)(?:\s*=\s*(.+))?$/);
   if(m){
     const[,type,name,value=null]=m;
@@ -489,7 +588,7 @@ function findPos(regionKey){
   const vp=document.getElementById(regionKey+'-vp');
   const r=vp?vp.getBoundingClientRect():{width:600,height:300};
   const W=(r.width||600)/ZOOM[regionKey],H=(r.height||300)/ZOOM[regionKey];
-  const NW=180,NH=145,P=18;
+  const NW=170,NH=145,P=18;
   const taken=[];
   S.objs.forEach(o=>{
     const inR=regionKey==='pool'?o.isPool:!o.isPool;
@@ -504,58 +603,423 @@ function findPos(regionKey){
   return{x:P+(idx%3)*(NW+14),y:P+Math.floor(idx/3)*(NH+14)};
 }
 
-// ─── Stack card ───
-function addVarCard(v){
-  const se=document.getElementById('sempty');if(se)se.style.display='none';
-  const cls=v.isPrim?'prim':v.addr?'ref':'nullv';
-  const valH=v.isPrim?`<div class="vc-val p">${esc(v.value)}</div>`:!v.addr?`<div class="vc-val n">null</div>`:`<div class="vc-val r">${esc(v.addr)}</div>`;
-  const note=v.meta?.pool?'→ String Pool':v.meta?.cache?'→ Integer Cache [-128..127]':v.meta?.ds?`→ Heap [${v.meta.ds}]`:v.isPrim?'direct value on stack':v.addr?'→ Heap object':'null ref';
-  const el=document.createElement('div');
-  el.className=`vcard ${cls}`;el.id='var-'+v.id;
-  el.innerHTML=`<div class="vc-type">${esc(v.type)}</div><div class="vc-name">${esc(v.name)}</div>${valH}<div class="vc-note">${note}</div>`;
-  v.el=el;document.getElementById('slist').appendChild(el);
+// ─── FIX #8: Frame management ───
+function getActiveFrame(){
+  return S.frames.find(f=>f.id===S.activeFrameId)||S.frames[S.frames.length-1]||null;
 }
 
-// ─── Standard DS ops (ArrayList, Stack, HashSet, HashMap etc.) ───
+function createFrame(name){
+  const id='frame-'+(Date.now())+'-'+Math.random().toString(36).slice(2,5);
+  const frame={id,name,vars:[]};
+  S.frames.push(frame);
+  S.activeFrameId=id;
+  renderAllFrames();
+  updateFrameLabel();
+  return frame;
+}
+
+function renderAllFrames(){
+  const slist=document.getElementById('slist');
+  // clear
+  slist.querySelectorAll('.frame-block').forEach(e=>e.remove());
+  const se=document.getElementById('sempty');
+  if(S.frames.length===0||(S.frames.length===1&&S.frames[0].vars.length===0)){
+    if(se)se.style.display='flex';
+    return;
+  }
+  if(se)se.style.display='none';
+  // render frames top=most recent
+  [...S.frames].reverse().forEach(frame=>{
+    const isActive=frame.id===S.activeFrameId;
+    const block=document.createElement('div');
+    block.className='frame-block '+(isActive?'frame-active':'frame-inactive');
+    block.id='frame-block-'+frame.id;
+    const varHtml=frame.vars.map(v=>{
+      const cls=v.isPrim?'prim':v.addr?'ref':'nullv';
+      const valH=v.isPrim?`<div class="vc-val p">${esc(v.value)}</div>`:!v.addr?`<div class="vc-val n">null</div>`:`<div class="vc-val r">${esc(v.addr)}</div>`;
+      const note=v.meta?.pool?'→ String Pool (inside Heap)':v.meta?.cache?`→ Integer Cache [-128…127] · use .equals() not ==`:v.meta?.ds?`→ Heap [${v.meta.ds}]`:v.isPrim?'stored directly on stack':v.addr?'→ Heap object':'null reference';
+      return`<div class="vcard ${cls}" id="var-${v.id}">\
+<div class="vc-type">${esc(v.type)}</div>\
+<div class="vc-name">${esc(v.name)}</div>${valH}\
+<div class="vc-note">${note}</div></div>`;
+    }).join('');
+    block.innerHTML=`<div class="frame-hdr"><span class="frame-name">${esc(frame.name)}</span><span class="frame-tag">${isActive?'▶ ACTIVE':'INACTIVE'}</span></div><div class="frame-vars" id="frame-vars-${frame.id}">${varHtml||'<div style="font-size:8px;color:var(--dim);padding:4px">(empty frame)</div>'}</div>`;
+    slist.appendChild(block);
+  });
+}
+
+function addVarToFrame(v){
+  const frame=getActiveFrame();
+  if(!frame)return;
+  frame.vars.push(v);
+  renderAllFrames();
+}
+
+function updateFrameLabel(){
+  document.getElementById('frame-count-label').textContent=S.frames.length+' frame'+(S.frames.length!==1?'s':'')+' active';
+  const af=getActiveFrame();
+  document.getElementById('active-frame-label').textContent=af?af.name:'—';
+}
+
+// ─── FIX #5: Two-phase GC ───
+function scheduleGC(addr){
+  const el=document.getElementById('obj-'+addr);
+  if(!el)return;
+  // Phase 1: mark eligible
+  el.classList.add('gc-eligible');
+  // Add badge
+  const badge=document.createElement('div');
+  badge.className='gc-badge';badge.id='gcbadge-'+addr;
+  badge.textContent='⚠ GC eligible — unreachable';
+  el.appendChild(badge);
+  setMsg('Object at '+addr+' is GC-eligible (unreachable)','idle');
+  // Phase 2: collect after random 1.5–4s delay
+  const delay=1500+Math.random()*2500;
+  setTimeout(()=>{
+    const el2=document.getElementById('obj-'+addr);
+    if(!el2)return;
+    el2.classList.remove('gc-eligible');
+    el2.classList.add('gc-fade');
+    el2.addEventListener('animationend',()=>{
+      el2.remove();
+      S.objs.delete(addr);
+      S.strPool.forEach((a,k)=>{if(a===addr)S.strPool.delete(k);});
+      S.intCache.forEach((a,k)=>{if(a===addr)S.intCache.delete(k);});
+      // Also remove LL nodes if this was an LL controller
+      if(S.llNodes.has(addr)){
+        S.llNodes.get(addr).forEach(na=>{
+          const ne=document.getElementById('obj-'+na);
+          if(ne){ne.classList.add('gc-fade');ne.addEventListener('animationend',()=>{ne.remove();S.objs.delete(na);},{once:true});}
+        });
+        S.llNodes.delete(addr);
+      }
+      updateStats();drawArrows();
+      if(![...S.objs.values()].some(o=>!o.isPool))document.getElementById('heap-empty').classList.remove('gone');
+      if(![...S.objs.values()].some(o=>o.isPool))document.getElementById('pool-empty').classList.remove('gone');
+    },{once:true});
+    setMsg('GC collected object at '+addr,'ok');
+  },delay);
+}
+
+// ─── Stack card: now just adds to active frame & re-renders ───
+function addVarCard(v){ addVarToFrame(v); }
+
+// ─── FIX #1: HashMap scrambled display ───
+function hmShuffleEntries(entries){
+  // Deterministic shuffle based on hashCode-like string hash
+  const hashed=entries.map(e=>{
+    let h=0;for(const c of String(e.k)){h=(h*31+c.charCodeAt(0))>>>0;}
+    return{...e,_h:h};
+  });
+  return hashed.sort((a,b)=>a._h-b._h);
+}
+
+function hmBucketIndex(key, size=16){
+  let h=0;for(const c of String(key)){h=(h*31+c.charCodeAt(0))>>>0;}
+  return h%size;
+}
+
+function buildHashMapBody(addr,type,d){
+  const entries=d.entries||[];
+  const isLinkedHM=type==='LinkedHashMap';
+  const isTreeM=type==='TreeMap';
+  let displayed;
+  if(isTreeM){
+    // sorted by key
+    displayed=[...entries].sort((a,b)=>String(a.k).localeCompare(String(b.k)));
+  } else if(isLinkedHM){
+    displayed=[...entries]; // insertion order preserved
+  } else {
+    displayed=hmShuffleEntries(entries);
+  }
+  const warnHtml=isTreeM
+    ?`<div class="tm-note">✓ TreeMap — keys sorted (natural order)</div>`
+    :isLinkedHM
+    ?`<div class="tm-note">✓ LinkedHashMap — insertion order preserved</div>`
+    :`<div class="hm-warn">⚠ HashMap — order NOT guaranteed (shown by hash bucket)</div>`;
+  const rowsHtml=displayed.length
+    ?displayed.map(e=>{
+        const bucket=isTreeM||isLinkedHM?'':` <span class="hm-bucket">[b${hmBucketIndex(e.k)}]</span>`;
+        return`<div class="hm-row">${bucket}<span class="hm-key">${esc(e.k)}</span><span class="hm-sep">→</span><span class="hm-val">${esc(e.v)}</span></div>`;
+      }).join('')
+    :`<div class="hm-row" style="color:var(--dim);font-size:8px">(empty)</div>`;
+  const mapLabel=isTreeM?'Sorted Key → Value':isLinkedHM?'Insertion-order Key → Value':'Key → Value (bucket order)';
+  return`<div class="ds-body">
+    <div class="ds-lbl">${mapLabel}</div>
+    ${warnHtml}
+    <div class="hm-buckets" id="dsitems-${addr}">${rowsHtml}</div>
+    <div class="ds-sz" id="dssz-${addr}">entries: ${entries.length}</div>
+    <div class="ds-ops">
+      <input class="op-in" style="width:55px" id="opk-${addr}" placeholder="key"/>
+      <input class="op-in" style="width:55px" id="opv-${addr}" placeholder="val"/>
+      <button class="op-btn op-add" onclick="dsAdd('${addr}')">put</button>
+      <button class="op-btn op-rem" onclick="dsRemove('${addr}')">remove</button>
+    </div>
+  </div>`;
+}
+
+// FIX #1: HashSet scrambled display
+function buildHashSetBody(addr,type,d){
+  const items=d.items||[];
+  const isTree=type==='TreeSet';
+  let displayed=isTree?[...items].sort((a,b)=>String(a).localeCompare(String(b))):hmShuffleEntries(items.map(v=>({k:v}))).map(e=>e.k);
+  const warnHtml=isTree
+    ?`<div class="tm-note">✓ TreeSet — elements sorted</div>`
+    :`<div class="hs-warn">⚠ HashSet — iteration order NOT guaranteed</div>`;
+  const chipsHtml=displayed.length
+    ?displayed.map(v=>`<span class="hs-chip">${esc(v)}</span>`).join('')
+    :`<span style="font-size:8px;color:var(--dim)">(empty)</span>`;
+  return`<div class="ds-body">
+    <div class="ds-lbl">${isTree?'Sorted elements':'Elements (hash order)'}</div>
+    ${warnHtml}
+    <div class="hs-items" id="dsitems-${addr}">${chipsHtml}</div>
+    <div class="ds-sz" id="dssz-${addr}">size: ${items.length}</div>
+    <div class="ds-ops">
+      <input class="op-in" id="opv-${addr}" placeholder="value"/>
+      <button class="op-btn op-add" onclick="dsAdd('${addr}')">add</button>
+      <button class="op-btn op-rem" onclick="dsRemove('${addr}')">remove</button>
+    </div>
+  </div>`;
+}
+
+// FIX #2: ArrayList horizontal cells
+function buildArrayListBody(addr,type,d){
+  const items=d.items||[];
+  const cellsHtml=items.length
+    ?items.map((v,i)=>`<div class="al-cell"><div class="al-cell-idx">[${i}]</div><div class="al-cell-val">${esc(v)}</div></div>`).join('')
+    :`<div class="al-empty">(empty)</div>`;
+  return`<div class="ds-body">
+    <div class="ds-lbl">Contiguous indexed elements</div>
+    <div class="al-grid" id="dsitems-${addr}">${cellsHtml}</div>
+    <div class="al-note">O(1) index access · O(n) insert/delete · auto-resizes internally</div>
+    <div class="ds-sz" id="dssz-${addr}">size: ${items.length}</div>
+    <div class="ds-ops">
+      <input class="op-in" id="opv-${addr}" placeholder="value"/>
+      <button class="op-btn op-add" onclick="dsAdd('${addr}')">add</button>
+      <button class="op-btn op-rem" onclick="dsRemove('${addr}')">remove last</button>
+    </div>
+  </div>`;
+}
+
+// FIX #2: generic array
+function buildArrayBody(addr,type,d){
+  const items=d.items||[];
+  const cellsHtml=items.length
+    ?items.map((v,i)=>`<div class="al-cell"><div class="al-cell-idx">[${i}]</div><div class="al-cell-val">${esc(v)}</div></div>`).join('')
+    :`<div class="al-empty">(empty)</div>`;
+  return`<div class="ds-body">
+    <div class="ds-lbl">Fixed-size contiguous block</div>
+    <div class="al-grid" id="dsitems-${addr}">${cellsHtml}</div>
+    <div class="ds-sz" id="dssz-${addr}">length: ${items.length} (fixed)</div>
+    <div class="ds-ops">
+      <input class="op-in" style="width:36px" id="opk-${addr}" placeholder="i"/>
+      <input class="op-in" style="width:55px" id="opv-${addr}" placeholder="val"/>
+      <button class="op-btn op-add" onclick="dsAdd('${addr}')">set[i]</button>
+      <button class="op-btn op-rem" onclick="dsRemove('${addr}')">reset</button>
+    </div>
+  </div>`;
+}
+
+// FIX #3: Stack LIFO tower
+function buildStackBody(addr,d){
+  const items=d.items||[];
+  // Render top of stack first (reverse order)
+  const rowsHtml=[...items].reverse().map((v,i)=>{
+    const isTop=i===0;
+    return`<div class="stk-item" style="${isTop?'background:rgba(56,189,248,.08);':''}">
+      <span>${esc(v)}</span>
+      ${isTop?'<span class="stk-item-label">← TOP</span>':''}
+    </div>`;
+  }).join('');
+  return`<div class="ds-body">
+    <div class="stk-tower">
+      <div class="stk-tower-top">▲ TOP OF STACK (LIFO)</div>
+      <div id="dsitems-${addr}">${items.length?rowsHtml:'<div class="stk-empty-msg">(stack empty)</div>'}</div>
+      <div class="stk-bottom">▁ BOTTOM</div>
+    </div>
+    <div class="ds-sz" id="dssz-${addr}">size: ${items.length}</div>
+    <div class="ds-ops">
+      <input class="op-in" id="opv-${addr}" placeholder="value"/>
+      <button class="op-btn op-add" onclick="dsAdd('${addr}')">push ↑</button>
+      <button class="op-btn op-rem" onclick="dsRemove('${addr}')">pop ↓</button>
+    </div>
+  </div>`;
+}
+
+// FIX #4: LinkedList controller card (compact chain + separate node objects)
+function buildLLControllerBody(addr,d){
+  const items=d.items||[];
+  return`<div class="ll-controller">
+    <div class="ds-lbl">Node chain (each node = separate heap object)</div>
+    <div class="ll-info">Each node below is its own heap allocation with <strong>value</strong> + <strong>next pointer</strong>. They are scattered in memory.</div>
+    <div id="llchain-${addr}">${renderLLMiniChain(items)}</div>
+    <div class="ds-sz" id="llsz-${addr}">size: ${items.length}</div>
+    <div class="ds-ops">
+      <input class="op-in" id="opv-${addr}" placeholder="value"/>
+      <button class="op-btn op-add" onclick="llAdd('${addr}')">add (tail)</button>
+      <button class="op-btn op-rem" onclick="llRemove('${addr}')">remove (val)</button>
+    </div>
+  </div>`;
+}
+
+function renderLLMiniChain(items){
+  if(!items.length) return '<div style="color:var(--dim);font-size:8px;padding:6px">[HEAD] → null</div>';
+  let html='<div style="font-size:7px;color:var(--teal);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">HEAD</div><div class="ll-chain-mini">';
+  items.forEach((v,i)=>{
+    const isLast=i===items.length-1;
+    html+=`<div class="ll-mn"><div class="ll-mn-box"><div class="ll-mn-val">${esc(v)}</div><div class="ll-mn-next">${isLast?'null':'next→'}</div></div></div>`;
+    if(!isLast)html+=`<div class="ll-arr">→</div>`;
+  });
+  html+=`<div class="ll-null">∅ null</div></div>`;
+  return html;
+}
+
+// FIX #4: spawn individual LL node heap cards
+function spawnLLNodes(controllerAddr, items){
+  // Remove old node cards for this LL
+  if(S.llNodes.has(controllerAddr)){
+    S.llNodes.get(controllerAddr).forEach(na=>{
+      const ne=document.getElementById('obj-'+na);
+      if(ne)ne.remove();
+      S.objs.delete(na);
+    });
+  }
+  const nodeAddrs=[];
+  const canvas=document.getElementById('heap-canvas');
+  const vp=document.getElementById('heap-vp');
+  const vpR=vp?vp.getBoundingClientRect():{width:600,height:300};
+  const W=vpR.width/ZOOM.heap, H=vpR.height/ZOOM.heap;
+  // place nodes scattered in right portion of heap
+  items.forEach((val,i)=>{
+    const nodeAddr=nAddr();
+    nodeAddrs.push(nodeAddr);
+    const nextAddr=i<items.length-1?'0x'+( (parseInt(nodeAddr,16)+16).toString(16).toUpperCase().padStart(8,'0')):'null';
+    const pos={
+      x: Math.min(W-130, 20 + Math.random()*Math.max(0,W-160)),
+      y: Math.min(H-120, 20 + Math.random()*Math.max(0,H-140))
+    };
+    const el=document.createElement('div');
+    el.className='hobj ll-node-o';
+    el.id='obj-'+nodeAddr;
+    el.style.left=pos.x+'px';el.style.top=pos.y+'px';
+    el.innerHTML=`
+      <div class="oh"><div class="otype">LL Node</div><div class="oaddr">${esc(nodeAddr)}</div></div>
+      <div class="orefs" style="font-size:7px;color:var(--teal)">node[${i}]</div>
+      <div class="oval" style="font-size:13px;font-weight:700">${esc(val)}</div>
+      <div class="ll-node-fields">
+        <div class="ll-field"><span class="ll-field-name">value:</span><span class="ll-field-val">${esc(val)}</span></div>
+        <div class="ll-field"><span class="ll-field-name">next:</span><span class="ll-field-val ptr">${i<items.length-1?'→ node['+(i+1)+']':'null'}</span></div>
+      </div>`;
+    makeDraggable(el,nodeAddr,'heap');
+    canvas.appendChild(el);
+    S.objs.set(nodeAddr,{type:'LLNode',val:val,refs:['node['+i+']'],el,isPool:false,isCache:false,isDS:false,dsData:null,x:pos.x,y:pos.y,addr:nodeAddr,isLLNode:true,parentLL:controllerAddr});
+  });
+  S.llNodes.set(controllerAddr, nodeAddrs);
+  document.getElementById('heap-empty').classList.add('gone');
+}
+
+function refreshLL(addr){
+  const obj=S.objs.get(addr);if(!obj)return;
+  const d=obj.dsData;
+  const chainEl=document.getElementById('llchain-'+addr);
+  const szEl=document.getElementById('llsz-'+addr);
+  const ovalEl=document.getElementById('oval-'+addr);
+  if(chainEl)chainEl.innerHTML=renderLLMiniChain(d.items||[]);
+  if(szEl)szEl.textContent='size: '+(d.items||[]).length;
+  if(ovalEl)ovalEl.textContent=`LinkedList[${(d.items||[]).join(' → ')}]`;
+  // Re-spawn node cards
+  spawnLLNodes(addr,d.items||[]);
+  setTimeout(drawArrows,60);
+}
+
+window.llAdd=function(addr){
+  const obj=S.objs.get(addr);if(!obj)return;
+  const vEl=document.getElementById('opv-'+addr);
+  const val=vEl?vEl.value.trim():'';
+  if(!val){setMsg('Enter a value to add','err');return;}
+  (obj.dsData.items=obj.dsData.items||[]).push(val);
+  if(vEl)vEl.value='';
+  refreshLL(addr);
+  setMsg(`LinkedList.add("${val}") ✓`,'ok');
+};
+
+window.llRemove=function(addr){
+  const obj=S.objs.get(addr);if(!obj)return;
+  const vEl=document.getElementById('opv-'+addr);
+  const val=vEl?vEl.value.trim():'';
+  const items=obj.dsData.items||[];
+  if(!val){
+    if(!items.length){setMsg('List is empty','err');return;}
+    const rem=items.pop();if(vEl)vEl.value='';
+    refreshLL(addr);setMsg(`removed "${rem}" (tail)`,'ok');
+  } else {
+    const idx=items.indexOf(val);
+    if(idx<0){setMsg(`"${val}" not found`,'err');return;}
+    items.splice(idx,1);if(vEl)vEl.value='';
+    refreshLL(addr);setMsg(`removed "${val}" ✓`,'ok');
+  }
+};
+
+// ─── Generic DS ops ───
 function buildDSOps(addr,type){
   const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
   const isStack=type==='Stack';
   const isArr=type.endsWith('[]');
-  if(isMap)return`<div class="ds-ops"><input class="op-in" style="width:60px" id="opk-${addr}" placeholder="key"/><input class="op-in" style="width:60px" id="opv-${addr}" placeholder="val"/><button class="op-btn op-add" onclick="dsAdd('${addr}')">put</button><button class="op-btn op-rem" onclick="dsRemove('${addr}')">remove</button></div>`;
-  if(isArr)return`<div class="ds-ops"><input class="op-in" style="width:36px" id="opk-${addr}" placeholder="i"/><input class="op-in" style="width:60px" id="opv-${addr}" placeholder="val"/><button class="op-btn op-add" onclick="dsAdd('${addr}')">set[i]</button><button class="op-btn op-rem" onclick="dsRemove('${addr}')">reset</button></div>`;
-  if(isStack)return`<div class="ds-ops"><input class="op-in" id="opv-${addr}" placeholder="value"/><button class="op-btn op-add" onclick="dsAdd('${addr}')">push</button><button class="op-btn op-rem" onclick="dsRemove('${addr}')">pop</button></div>`;
   const isSet=type==='HashSet'||type==='TreeSet';
-  return`<div class="ds-ops"><input class="op-in" id="opv-${addr}" placeholder="value"/><button class="op-btn op-add" onclick="dsAdd('${addr}')">add</button><button class="op-btn op-rem" onclick="dsRemove('${addr}')">${isSet?'remove':'remove(last)'}</button></div>`;
+  if(isMap)return`<div class="ds-ops"><input class="op-in" style="width:55px" id="opk-${addr}" placeholder="key"/><input class="op-in" style="width:55px" id="opv-${addr}" placeholder="val"/><button class="op-btn op-add" onclick="dsAdd('${addr}')">put</button><button class="op-btn op-rem" onclick="dsRemove('${addr}')">remove</button></div>`;
+  if(isArr)return`<div class="ds-ops"><input class="op-in" style="width:36px" id="opk-${addr}" placeholder="i"/><input class="op-in" style="width:55px" id="opv-${addr}" placeholder="val"/><button class="op-btn op-add" onclick="dsAdd('${addr}')">set[i]</button><button class="op-btn op-rem" onclick="dsRemove('${addr}')">reset</button></div>`;
+  if(isStack)return`<div class="ds-ops"><input class="op-in" id="opv-${addr}" placeholder="value"/><button class="op-btn op-add" onclick="dsAdd('${addr}')">push ↑</button><button class="op-btn op-rem" onclick="dsRemove('${addr}')">pop ↓</button></div>`;
+  return`<div class="ds-ops"><input class="op-in" id="opv-${addr}" placeholder="value"/><button class="op-btn op-add" onclick="dsAdd('${addr}')">add</button><button class="op-btn op-rem" onclick="dsRemove('${addr}')">${isSet?'remove':'remove last'}</button></div>`;
 }
 
-function renderDSRows(type,d){
-  const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
-  if(isMap){const e=d.entries||[];return e.length?e.map(x=>`<div class="ds-row"><span class="ds-idx">${esc(x.k)}</span><span class="ds-sep">→</span><span class="ds-v">${esc(x.v)}</span></div>`).join(''):'<div class="ds-row" style="color:var(--dim);font-size:8px">(empty)</div>';}
-  const it=d.items||[];return it.length?it.map((v,i)=>`<div class="ds-row"><span class="ds-idx">[${i}]</span><span class="ds-sep">→</span><span class="ds-v">${esc(v)}</span></div>`).join(''):'<div class="ds-row" style="color:var(--dim);font-size:8px">(empty)</div>';
-}
-
-function getDSDisp(type,d){
+function getDisplayVal(type,d){
   const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
   const isSet=type==='HashSet'||type==='TreeSet';
   if(isMap){const e=d.entries||[];return e.length?`{${e.map(x=>`${x.k}:${x.v}`).join(', ')}}`:'{}'}
   const it=d.items||[];return it.length?(isSet?`{${it.join(', ')}}`:`[${it.join(', ')}]`):(isSet?'{}':'[]');
 }
 
-function buildDSBody(addr,type,d){
-  const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
-  return`<div class="ds-body"><div class="ds-lbl">${isMap?'Key → Value':'Elements'}</div><div class="ds-items" id="dsitems-${addr}">${renderDSRows(type,d)}</div><div class="ds-sz" id="dssz-${addr}">${isMap?'entries':'size'}: ${isMap?(d.entries||[]).length:(d.items||[]).length}</div>${buildDSOps(addr,type)}</div>`;
-}
-
 function refreshDS(addr){
   const obj=S.objs.get(addr);if(!obj||!obj.dsData)return;
   const{type,dsData:d}=obj;
   const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
-  const ie=document.getElementById('dsitems-'+addr);
-  const se=document.getElementById('dssz-'+addr);
-  const oe=document.getElementById('oval-'+addr);
-  if(ie)ie.innerHTML=renderDSRows(type,d);
-  if(se)se.textContent=`${isMap?'entries':'size'}: ${isMap?(d.entries||[]).length:(d.items||[]).length}`;
-  if(oe)oe.textContent=getDSDisp(type,d);
+  const isSet=type==='HashSet'||type==='TreeSet';
+  const isAL=type==='ArrayList';
+  const isStack=type==='Stack';
+  const ovalEl=document.getElementById('oval-'+addr);
+  if(ovalEl)ovalEl.textContent=getDisplayVal(type,d);
+  const szEl=document.getElementById('dssz-'+addr);
+  if(szEl)szEl.textContent=`${isMap?'entries':'size'}: ${isMap?(d.entries||[]).length:(d.items||[]).length}${isAL?' (fixed capacity tracked internally)':''}`;
+
+  const container=document.getElementById('dsitems-'+addr);
+  if(!container)return;
+  if(isMap){
+    const entries=d.entries||[];
+    const isLinkedHM=type==='LinkedHashMap';const isTreeM=type==='TreeMap';
+    let displayed=isTreeM?[...entries].sort((a,b)=>String(a.k).localeCompare(String(b.k))):isLinkedHM?[...entries]:hmShuffleEntries(entries);
+    container.innerHTML=displayed.length
+      ?displayed.map(e=>{
+          const bucket=isTreeM||isLinkedHM?'':` <span class="hm-bucket">[b${hmBucketIndex(e.k)}]</span>`;
+          return`<div class="hm-row">${bucket}<span class="hm-key">${esc(e.k)}</span><span class="hm-sep">→</span><span class="hm-val">${esc(e.v)}</span></div>`;
+        }).join('')
+      :`<div class="hm-row" style="color:var(--dim);font-size:8px">(empty)</div>`;
+  } else if(isSet){
+    const items=d.items||[];
+    const isTree=type==='TreeSet';
+    const displayed=isTree?[...items].sort():hmShuffleEntries(items.map(v=>({k:v}))).map(e=>e.k);
+    container.innerHTML=displayed.length?displayed.map(v=>`<span class="hs-chip">${esc(v)}</span>`).join(''):'<span style="font-size:8px;color:var(--dim)">(empty)</span>';
+  } else if(isAL){
+    const items=d.items||[];
+    container.innerHTML=items.length?items.map((v,i)=>`<div class="al-cell"><div class="al-cell-idx">[${i}]</div><div class="al-cell-val">${esc(v)}</div></div>`).join(''):'<div class="al-empty">(empty)</div>';
+  } else if(isStack){
+    const items=d.items||[];
+    container.innerHTML=items.length
+      ?[...items].reverse().map((v,i)=>`<div class="stk-item" style="${i===0?'background:rgba(56,189,248,.08);':''}"><span>${esc(v)}</span>${i===0?'<span class="stk-item-label">← TOP</span>':''}</div>`).join('')
+      :'<div class="stk-empty-msg">(stack empty)</div>';
+  } else {
+    const items=d.items||[];
+    container.innerHTML=items.length?items.map((v,i)=>`<div class="al-cell"><div class="al-cell-idx">[${i}]</div><div class="al-cell-val">${esc(v)}</div></div>`).join(''):'<div class="al-empty">(empty)</div>';
+  }
 }
 
 window.dsAdd=function(addr){
@@ -579,201 +1043,49 @@ window.dsRemove=function(addr){
   const vEl=document.getElementById('opv-'+addr),kEl=document.getElementById('opk-'+addr);
   if(isMap){const key=kEl?kEl.value.trim():'';if(!key){setMsg('Enter key','err');return;}const before=(d.entries||[]).length;d.entries=(d.entries||[]).filter(e=>e.k!==key);if(kEl)kEl.value='';setMsg(d.entries.length<before?`remove("${key}") ✓`:`Key "${key}" not found`,d.entries.length<before?'ok':'err');}
   else if(isArr){const i=kEl?parseInt(kEl.value):NaN;if(isNaN(i)||i<0||i>=(d.items||[]).length){setMsg('Out of bounds','err');return;}d.items[i]='0';if(kEl)kEl.value='';setMsg(`arr[${i}]=0 ✓`,'ok');}
-  else if(isStack){if(!(d.items||[]).length){setMsg('Stack empty','err');return;}const rem=d.items.pop();setMsg(`pop() → "${rem}"`,'ok');}
+  else if(isStack){if(!(d.items||[]).length){setMsg('Stack empty','err');return;}const rem=d.items.pop();setMsg(`pop() → "${rem}" (removed from TOP)`,'ok');}
   else if(isSet){const val=vEl?vEl.value.trim():'';if(!val){setMsg('Enter value','err');return;}const before=(d.items||[]).length;d.items=(d.items||[]).filter(x=>x!==val);if(vEl)vEl.value='';setMsg(d.items.length<before?`remove("${val}") ✓`:`"${val}" not found`,'ok');}
   else{if(!(d.items||[]).length){setMsg('Empty','err');return;}const rem=d.items.pop();if(vEl)vEl.value='';setMsg(`removed "${rem}" ✓`,'ok');}
   refreshDS(addr);
 };
 
-// ─────────────────────────────────────────────
-// LINKED LIST — visual node-chain display
-// ─────────────────────────────────────────────
-function renderLLChain(items) {
-  if (!items.length) return '<div style="color:var(--dim);font-size:8px;padding:8px">[HEAD] → null</div>';
-  let html = '<div class="ll-head-label">HEAD</div><div class="ll-chain">';
-  items.forEach((v, i) => {
-    const isLast = i === items.length - 1;
-    html += `<div class="ll-node">
-      <div class="ll-node-box">
-        <div class="ll-node-val">${esc(v)}</div>
-        <div class="ll-node-next">${isLast ? 'null' : 'next'}</div>
-      </div>
-      ${isLast ? '' : '<div class="ll-arrow">→</div>'}
-    </div>`;
-  });
-  html += '<div class="ll-null">∅</div></div>';
-  return html;
-}
-
-function buildLLBody(addr, d) {
-  return `<div class="ds-body">
-    <div class="ds-lbl">Node Chain · size: <span id="llsz-${addr}">${(d.items||[]).length}</span></div>
-    <div id="llchain-${addr}">${renderLLChain(d.items||[])}</div>
-    <div class="ds-ops">
-      <input class="op-in" id="opv-${addr}" placeholder="value"/>
-      <button class="op-btn op-add" onclick="llAdd('${addr}')">add (tail)</button>
-      <button class="op-btn op-rem" onclick="llRemove('${addr}')">remove (val)</button>
-    </div>
-  </div>`;
-}
-
-function refreshLL(addr) {
-  const obj = S.objs.get(addr); if (!obj) return;
-  const d = obj.dsData;
-  const chainEl = document.getElementById('llchain-'+addr);
-  const szEl    = document.getElementById('llsz-'+addr);
-  const ovalEl  = document.getElementById('oval-'+addr);
-  if (chainEl) chainEl.innerHTML = renderLLChain(d.items||[]);
-  if (szEl)    szEl.textContent  = (d.items||[]).length;
-  if (ovalEl)  ovalEl.textContent= `LinkedList[${(d.items||[]).join(' → ')}]`;
-}
-
-window.llAdd = function(addr) {
-  const obj=S.objs.get(addr);if(!obj)return;
-  const vEl=document.getElementById('opv-'+addr);
-  const val=vEl?vEl.value.trim():'';
-  if(!val){setMsg('Enter a value to add','err');return;}
-  (obj.dsData.items=obj.dsData.items||[]).push(val);
-  if(vEl)vEl.value='';
-  refreshLL(addr);
-  setMsg(`LinkedList.add("${val}") ✓`,'ok');
-};
-
-window.llRemove = function(addr) {
-  const obj=S.objs.get(addr);if(!obj)return;
-  const vEl=document.getElementById('opv-'+addr);
-  const val=vEl?vEl.value.trim():'';
-  const items=obj.dsData.items||[];
-  if(!val){
-    // remove last
-    if(!items.length){setMsg('List is empty','err');return;}
-    const rem=items.pop();if(vEl)vEl.value='';
-    refreshLL(addr);setMsg(`removed "${rem}" (tail)`,'ok');
-  } else {
-    const idx=items.indexOf(val);
-    if(idx<0){setMsg(`"${val}" not found in list`,'err');return;}
-    items.splice(idx,1);if(vEl)vEl.value='';
-    refreshLL(addr);setMsg(`removed "${val}" ✓`,'ok');
-  }
-};
-
-// ─────────────────────────────────────────────
-// BST — Binary Search Tree
-// ─────────────────────────────────────────────
-class BSTNode { constructor(v){this.val=v;this.left=null;this.right=null;} }
-
-class BinarySearchTree {
+// ─── BST ───
+class BSTNode{constructor(v){this.val=v;this.left=null;this.right=null;}}
+class BinarySearchTree{
   constructor(){this.root=null;}
-  insert(v){
-    v=parseFloat(v);if(isNaN(v))return false;
-    const node=new BSTNode(v);
-    if(!this.root){this.root=node;return true;}
-    let cur=this.root;
-    while(true){
-      if(v===cur.val)return false;// no dupes
-      if(v<cur.val){if(!cur.left){cur.left=node;return true;}cur=cur.left;}
-      else{if(!cur.right){cur.right=node;return true;}cur=cur.right;}
-    }
-  }
-  remove(v){
-    v=parseFloat(v);
-    const del=(node,val)=>{
-      if(!node)return null;
-      if(val<node.val)node.left=del(node.left,val);
-      else if(val>node.val)node.right=del(node.right,val);
-      else{
-        if(!node.left)return node.right;
-        if(!node.right)return node.left;
-        // in-order successor (min of right subtree)
-        let min=node.right;while(min.left)min=min.left;
-        node.val=min.val;
-        node.right=del(node.right,min.val);
-      }
-      return node;
-    };
-    const before=this.root;
-    this.root=del(this.root,v);
-    return before!==this.root||this.find(v)===null;
-  }
+  insert(v){v=parseFloat(v);if(isNaN(v))return false;const node=new BSTNode(v);if(!this.root){this.root=node;return true;}let cur=this.root;while(true){if(v===cur.val)return false;if(v<cur.val){if(!cur.left){cur.left=node;return true;}cur=cur.left;}else{if(!cur.right){cur.right=node;return true;}cur=cur.right;}}}
+  remove(v){v=parseFloat(v);const del=(node,val)=>{if(!node)return null;if(val<node.val)node.left=del(node.left,val);else if(val>node.val)node.right=del(node.right,val);else{if(!node.left)return node.right;if(!node.right)return node.left;let min=node.right;while(min.left)min=min.left;node.val=min.val;node.right=del(node.right,min.val);}return node;};this.root=del(this.root,v);}
   find(v){let c=this.root;while(c){if(v===c.val)return c;c=v<c.val?c.left:c.right;}return null;}
   inorder(){const r=[];const go=n=>{if(!n)return;go(n.left);r.push(n.val);go(n.right);};go(this.root);return r;}
 }
 
-// Draw BST on a canvas element with dynamic sizing
-function drawBSTCanvas(addr) {
+function drawBSTCanvas(addr){
   const obj=S.objs.get(addr);if(!obj||!obj.bstTree)return;
-  const canvasEl=document.getElementById('bstcanv-'+addr);
-  if(!canvasEl)return;
+  const canvasEl=document.getElementById('bstcanv-'+addr);if(!canvasEl)return;
   const tree=obj.bstTree;
   if(!tree.root){const ctx=canvasEl.getContext('2d');ctx.clearRect(0,0,canvasEl.width,canvasEl.height);return;}
-
-  // Calculate positions dynamically
   const positions=new Map();
   const levelW=[];
   function calcDepth(node,d=0){if(!node)return;levelW[d]=(levelW[d]||0)+1;calcDepth(node.left,d+1);calcDepth(node.right,d+1);}
   calcDepth(tree.root);
   const depth=levelW.length;
-  const R=16, HGAP=45, VGAP=42;
-  const cW=Math.max(240, (Math.pow(2,depth)*HGAP)+40);
-  const cH=Math.max(120, depth*VGAP+R*2+20);
-  canvasEl.width=cW; canvasEl.height=cH;
-
-  function positionNode(node, x, y, spread){
-    if(!node)return;
-    positions.set(node,{x,y});
-    if(node.left)positionNode(node.left, x-spread, y+VGAP, spread/2);
-    if(node.right)positionNode(node.right, x+spread, y+VGAP, spread/2);
-  }
-  positionNode(tree.root, cW/2, R+12, cW/4);
-
-  const ctx=canvasEl.getContext('2d');
-  ctx.clearRect(0,0,cW,cH);
-  ctx.lineCap='round';ctx.lineJoin='round';
-
-  // Draw edges first
-  positions.forEach(({x,y},node)=>{
-    const drawEdge=(child)=>{
-      if(!child)return;
-      const cp=positions.get(child);if(!cp)return;
-      ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(cp.x,cp.y);
-      ctx.strokeStyle='rgba(251,191,36,.35)';ctx.lineWidth=2.2;ctx.stroke();
-    };
-    if(node.left)drawEdge(node.left);
-    if(node.right)drawEdge(node.right);
-  });
-
-  // Draw nodes
-  positions.forEach(({x,y},node)=>{
-    // circle background
-    ctx.beginPath();ctx.arc(x,y,R,0,Math.PI*2);
-    ctx.fillStyle='#111827';ctx.fill();
-    ctx.strokeStyle='#fbbf24';ctx.lineWidth=2.2;ctx.stroke();
-    // value text
-    ctx.fillStyle='#f0f0f0';ctx.font=`700 ${R>14?11:10}px JetBrains Mono,monospace`;
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(String(node.val),x,y);
-  });
-
-  // Root label
-  if(tree.root){
-    const rp=positions.get(tree.root);
-    if(rp){ctx.fillStyle='#fbbf24';ctx.font='700 8px JetBrains Mono,monospace';ctx.textAlign='center';ctx.fillText('root',rp.x,rp.y-R-8);}
-  }
+  const R=16,HGAP=45,VGAP=42;
+  const cW=Math.max(240,(Math.pow(2,depth)*HGAP)+40);
+  const cH=Math.max(120,depth*VGAP+R*2+20);
+  canvasEl.width=cW;canvasEl.height=cH;
+  function positionNode(node,x,y,spread){if(!node)return;positions.set(node,{x,y});if(node.left)positionNode(node.left,x-spread,y+VGAP,spread/2);if(node.right)positionNode(node.right,x+spread,y+VGAP,spread/2);}
+  positionNode(tree.root,cW/2,R+12,cW/4);
+  const ctx=canvasEl.getContext('2d');ctx.clearRect(0,0,cW,cH);ctx.lineCap='round';ctx.lineJoin='round';
+  positions.forEach(({x,y},node)=>{const drawEdge=(child)=>{if(!child)return;const cp=positions.get(child);if(!cp)return;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(cp.x,cp.y);ctx.strokeStyle='rgba(251,191,36,.35)';ctx.lineWidth=2.2;ctx.stroke();};if(node.left)drawEdge(node.left);if(node.right)drawEdge(node.right);});
+  positions.forEach(({x,y},node)=>{ctx.beginPath();ctx.arc(x,y,R,0,Math.PI*2);ctx.fillStyle='#111827';ctx.fill();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2.2;ctx.stroke();ctx.fillStyle='#f0f0f0';ctx.font=`700 ${R>14?11:10}px JetBrains Mono,monospace`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(node.val),x,y);});
+  if(tree.root){const rp=positions.get(tree.root);if(rp){ctx.fillStyle='#fbbf24';ctx.font='700 8px JetBrains Mono,monospace';ctx.textAlign='center';ctx.fillText('root',rp.x,rp.y-R-8);}}
 }
 
-function buildBSTBody(addr, tree) {
-  return `<div class="bst-wrap">
-    <div class="bst-lbl">In-order Traversal: <span id="bst-io-${addr}">—</span></div>
-    <div class="bst-canvas"><canvas id="bstcanv-${addr}" width="240" height="140"></canvas></div>
-    <div class="bst-ops ds-ops">
-      <input class="op-in" id="opv-${addr}" placeholder="number"/>
-      <button class="op-btn op-add" onclick="bstAdd('${addr}')">insert</button>
-      <button class="op-btn op-rem" onclick="bstRemove('${addr}')">delete</button>
-    </div>
-  </div>`;
+function buildBSTBody(addr){
+  return`<div class="bst-wrap"><div class="bst-lbl">In-order Traversal: <span id="bst-io-${addr}">—</span></div><div class="bst-canvas"><canvas id="bstcanv-${addr}" width="240" height="140"></canvas></div><div class="bst-ops ds-ops"><input class="op-in" id="opv-${addr}" placeholder="number"/><button class="op-btn op-add" onclick="bstAdd('${addr}')">insert</button><button class="op-btn op-rem" onclick="bstRemove('${addr}')">delete</button></div></div>`;
 }
 
-function refreshBST(addr) {
+function refreshBST(addr){
   const obj=S.objs.get(addr);if(!obj||!obj.bstTree)return;
   const inorder=obj.bstTree.inorder();
   const ioEl=document.getElementById('bst-io-'+addr);
@@ -783,28 +1095,8 @@ function refreshBST(addr) {
   setTimeout(()=>drawBSTCanvas(addr),40);
 }
 
-window.bstAdd=function(addr){
-  const obj=S.objs.get(addr);if(!obj||!obj.bstTree)return;
-  const vEl=document.getElementById('opv-'+addr);
-  const val=vEl?vEl.value.trim():'';
-  if(!val||isNaN(parseFloat(val))){setMsg('Enter a numeric value','err');return;}
-  const ok=obj.bstTree.insert(val);
-  if(vEl)vEl.value='';
-  if(!ok){setMsg(`${val} already in BST`,'err');return;}
-  refreshBST(addr);
-  setMsg(`BST.insert(${val}) ✓`,'ok');
-};
-
-window.bstRemove=function(addr){
-  const obj=S.objs.get(addr);if(!obj||!obj.bstTree)return;
-  const vEl=document.getElementById('opv-'+addr);
-  const val=vEl?vEl.value.trim():'';
-  if(!val||isNaN(parseFloat(val))){setMsg('Enter a numeric value','err');return;}
-  obj.bstTree.remove(parseFloat(val));
-  if(vEl)vEl.value='';
-  refreshBST(addr);
-  setMsg(`BST.delete(${val}) ✓`,'ok');
-};
+window.bstAdd=function(addr){const obj=S.objs.get(addr);if(!obj||!obj.bstTree)return;const vEl=document.getElementById('opv-'+addr);const val=vEl?vEl.value.trim():'';if(!val||isNaN(parseFloat(val))){setMsg('Enter a numeric value','err');return;}const ok=obj.bstTree.insert(val);if(vEl)vEl.value='';if(!ok){setMsg(`${val} already in BST`,'err');return;}refreshBST(addr);setMsg(`BST.insert(${val}) ✓`,'ok');};
+window.bstRemove=function(addr){const obj=S.objs.get(addr);if(!obj||!obj.bstTree)return;const vEl=document.getElementById('opv-'+addr);const val=vEl?vEl.value.trim():'';if(!val||isNaN(parseFloat(val))){setMsg('Enter a numeric value','err');return;}obj.bstTree.remove(parseFloat(val));if(vEl)vEl.value='';refreshBST(addr);setMsg(`BST.delete(${val}) ✓`,'ok');};
 
 // ─── Add heap object ───
 function addHeapObj(addr,type,displayVal,varName,isPool,isCache,isDS,dsData,extra){
@@ -815,13 +1107,35 @@ function addHeapObj(addr,type,displayVal,varName,isPool,isCache,isDS,dsData,extr
   const el=document.createElement('div');
   const isBST=type==='BST';
   const isLL=type==='LinkedList';
+  const isAL=type==='ArrayList';
+  const isStack=type==='Stack';
+  const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
+  const isSet=type==='HashSet'||type==='TreeSet';
+  const isArr=type.endsWith('[]');
+
   el.className=`hobj${isPool?' pool-o':isBST?' bst-o':isLL?' ll-o':isDS?' ds-o':''}`;
   el.id='obj-'+addr;el.style.left=pos.x+'px';el.style.top=pos.y+'px';
-  const badge=isPool?'<div class="obadge interned">⚑ INTERNED</div>':isCache?'<div class="obadge cache">⚑ CACHE −128…127</div>':isBST?'<div class="obadge bst">◈ BST</div>':isLL?'<div class="obadge ll">◈ LinkedList</div>':isDS?`<div class="obadge ds">◈ ${esc(type)}</div>`:'';
+
+  let badge='';
+  if(isPool)badge='<div class="obadge interned">⚑ INTERNED · String Pool</div>';
+  else if(isCache)badge='<div class="obadge cache">⚑ Integer Cache [-128…127] · .equals() for comparison!</div>';
+  else if(isBST)badge='<div class="obadge bst">◈ BST</div>';
+  else if(isLL)badge='<div class="obadge ll">◈ LinkedList · nodes scattered in heap</div>';
+  else if(isAL)badge='<div class="obadge ds">◈ ArrayList · contiguous indexed array</div>';
+  else if(isStack)badge='<div class="obadge ds" style="color:var(--blue)">◈ Stack · LIFO</div>';
+  else if(isMap)badge=`<div class="obadge ds">◈ ${esc(type)}</div>`;
+  else if(isSet)badge=`<div class="obadge ds">◈ ${esc(type)}</div>`;
+  else if(isDS)badge=`<div class="obadge ds">◈ ${esc(type)}</div>`;
+
   let body='';
-  if(isBST)body=buildBSTBody(addr,extra?.bstTree);
-  else if(isLL)body=buildLLBody(addr,dsData);
-  else if(isDS&&dsData)body=buildDSBody(addr,type,dsData);
+  if(isBST)body=buildBSTBody(addr);
+  else if(isLL)body=buildLLControllerBody(addr,dsData);
+  else if(isAL)body=buildArrayListBody(addr,type,dsData);
+  else if(isStack)body=buildStackBody(addr,dsData);
+  else if(isMap)body=buildHashMapBody(addr,type,dsData);
+  else if(isSet)body=buildHashSetBody(addr,type,dsData);
+  else if(isArr)body=buildArrayBody(addr,type,dsData);
+
   el.innerHTML=`<div class="oh"><div class="otype">${esc(type)}</div><div class="oaddr">${esc(addr)}</div></div><div class="orefs" id="refs-${addr}">${esc(varName)}</div><div class="oval" id="oval-${addr}">${esc(displayVal)}</div>${badge}${body}`;
   makeDraggable(el,addr,ck);
   canvas.appendChild(el);
@@ -829,6 +1143,10 @@ function addHeapObj(addr,type,displayVal,varName,isPool,isCache,isDS,dsData,extr
   if(isBST)objData.bstTree=extra.bstTree;
   S.objs.set(addr,objData);
   if(isBST)setTimeout(()=>drawBSTCanvas(addr),80);
+  if(isLL){
+    S.llNodes.set(addr,[]);
+    // Spawn initial empty (no nodes yet)
+  }
 }
 
 function addRefToObj(addr,name){
@@ -854,7 +1172,7 @@ function makeDraggable(el,addr,ck){
 function drawArrows(){
   const svg=document.getElementById('arrow-svg');
   svg.querySelectorAll('.ap').forEach(e=>e.remove());
-  S.vars.forEach(v=>{
+  allVars().forEach(v=>{
     if(v.isPrim||!v.addr)return;
     const ve=document.getElementById('var-'+v.id),oe=document.getElementById('obj-'+v.addr);
     if(!ve||!oe)return;
@@ -883,10 +1201,8 @@ function processDecl(decl){
     const{varName,method,args}=decl;
     const addr=S.nameToAddr.get(varName);
     if(!addr){setMsg(`"${varName}" not declared yet`,'err');return;}
-    const obj=S.objs.get(addr);
-    if(!obj){setMsg(`"${varName}" not found`,'err');return;}
+    const obj=S.objs.get(addr);if(!obj){setMsg(`"${varName}" not found`,'err');return;}
 
-    // BST methods
     if(obj.type==='BST'){
       const val=args[0]||'';
       if(method==='add'||method==='insert'){if(!obj.bstTree.insert(val)){setMsg(`${val} already in BST`,'err');return;}refreshBST(addr);}
@@ -894,23 +1210,18 @@ function processDecl(decl){
       return;
     }
 
-    // LinkedList methods
     if(obj.type==='LinkedList'){
       const d=obj.dsData,val=args[0]||'';
       if(method==='add'||method==='addLast'||method==='offer'){(d.items=d.items||[]).push(val);}
       else if(method==='addFirst'){(d.items=d.items||[]).unshift(val);}
-      else if(method==='remove'||method==='removeFirst'||method==='poll'||method==='pollFirst'){
-        if(val&&!isNaN(parseInt(val))&&args.length>0&&isNaN(parseFloat(val))===false&&/^\d+$/.test(val)===false){
-          // remove by value
-          const idx=(d.items||[]).indexOf(val);if(idx>=0)d.items.splice(idx,1);
-        } else if(val){const idx=(d.items||[]).indexOf(val);if(idx>=0)d.items.splice(idx,1);else if(d.items.length)d.items.shift();}
+      else if(method==='remove'||method==='removeFirst'||method==='poll'){
+        if(val){const idx=(d.items||[]).indexOf(val);if(idx>=0)d.items.splice(idx,1);else if(d.items.length)d.items.shift();}
         else{if((d.items||[]).length)d.items.shift();}
       }
       else if(method==='removeLast'||method==='pollLast'){if((d.items||[]).length)d.items.pop();}
       refreshLL(addr);return;
     }
 
-    // Generic DS
     if(!obj.isDS){setMsg(`"${varName}" is not a data structure`,'err');return;}
     const{type,dsData:d}=obj;
     const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
@@ -926,10 +1237,11 @@ function processDecl(decl){
   if(decl.kind==='array'){
     const{type,name,items}=decl;const addr=nAddr();
     const dsData={items:[...items]};
-    addHeapObj(addr,type,`[${items.join(', ')}]`,name,false,false,true,dsData,null);
+    const displayVal=`[${items.join(', ')}]`;
+    addHeapObj(addr,type,displayVal,name,false,false,true,dsData,null);
     const id=`v${Date.now()}${Math.random().toString(36).slice(2,5)}`;
     const v={id,name,type,isPrim:false,addr,value:null,meta:{ds:type},el:null};
-    S.vars.push(v);S.nameToAddr.set(name,addr);addVarCard(v);return;
+    S.nameToAddr.set(name,addr);addVarCard(v);return;
   }
 
   if(decl.kind==='ds'){
@@ -940,21 +1252,21 @@ function processDecl(decl){
       const bstTree=new BinarySearchTree();
       addHeapObj(addr,'BST','BST{}',name,false,false,true,null,{bstTree});
       const v={id,name,type:'BST',isPrim:false,addr,value:null,meta:{ds:'BST'},el:null};
-      S.vars.push(v);S.nameToAddr.set(name,addr);addVarCard(v);return;
+      S.nameToAddr.set(name,addr);addVarCard(v);return;
     }
 
     if(type==='LinkedList'){
       const dsData={items:[]};
       addHeapObj(addr,'LinkedList','LinkedList[]',name,false,false,true,dsData,null);
       const v={id,name,type:'LinkedList',isPrim:false,addr,value:null,meta:{ds:'LinkedList'},el:null};
-      S.vars.push(v);S.nameToAddr.set(name,addr);addVarCard(v);return;
+      S.nameToAddr.set(name,addr);addVarCard(v);return;
     }
 
     const isMap=type==='HashMap'||type==='TreeMap'||type==='LinkedHashMap';
     const dsData=isMap?{entries:[]}:{items:[]};
     addHeapObj(addr,type,isMap?'{}':'[]',name,false,false,true,dsData,null);
     const v={id,name,type,isPrim:false,addr,value:null,meta:{ds:type},el:null};
-    S.vars.push(v);S.nameToAddr.set(name,addr);addVarCard(v);return;
+    S.nameToAddr.set(name,addr);addVarCard(v);return;
   }
 
   // Normal var
@@ -964,35 +1276,53 @@ function processDecl(decl){
   const isPrim=PRIMS.has(resolved);
   const val=normalizeVal(resolved,rawVal);
   const v={id,name,type:resolved,isPrim,addr:null,value:val,meta:null,el:null};
-  if(val===null){S.vars.push(v);S.nameToAddr.set(name,null);addVarCard(v);return;}
-  if(isPrim){S.vars.push(v);S.nameToAddr.set(name,null);addVarCard(v);return;}
+  if(val===null){S.nameToAddr.set(name,null);addVarCard(v);return;}
+  if(isPrim){S.nameToAddr.set(name,null);addVarCard(v);return;}
   if(resolved==='String'&&!/^new\s+String/.test(val)){
-    if(S.strPool.has(val)){const a=S.strPool.get(val);v.addr=a;v.meta={pool:true};S.vars.push(v);S.nameToAddr.set(name,a);addVarCard(v);addRefToObj(a,name);}
-    else{const a=nAddr();S.strPool.set(val,a);addHeapObj(a,'String',val,name,true,false,false,null,null);v.addr=a;v.meta={pool:true};S.vars.push(v);S.nameToAddr.set(name,a);addVarCard(v);}
+    if(S.strPool.has(val)){const a=S.strPool.get(val);v.addr=a;v.meta={pool:true};S.nameToAddr.set(name,a);addVarCard(v);addRefToObj(a,name);}
+    else{const a=nAddr();S.strPool.set(val,a);addHeapObj(a,'String',val,name,true,false,false,null,null);v.addr=a;v.meta={pool:true};S.nameToAddr.set(name,a);addVarCard(v);}
     return;
   }
   if(resolved==='String'){
     const inner=val.match(/new\s+String\s*\(\s*"(.*)"\s*\)/);const a=nAddr();
     addHeapObj(a,'String',inner?`"${inner[1]}"`:`"?"`,name,false,false,false,null,null);
-    v.addr=a;S.vars.push(v);S.nameToAddr.set(name,a);addVarCard(v);return;
+    v.addr=a;S.nameToAddr.set(name,a);addVarCard(v);return;
   }
+  // FIX #7: Integer cache + autoboxing note
   if(resolved==='Integer'){
     const num=parseInt(val);
     if(!isNaN(num)&&num>=-128&&num<=127){
       const key='C'+num;
-      if(S.intCache.has(key)){const a=S.intCache.get(key);v.addr=a;v.meta={cache:true};S.vars.push(v);S.nameToAddr.set(name,a);addVarCard(v);addRefToObj(a,name);}
-      else{const a=nAddr();S.intCache.set(key,a);addHeapObj(a,'Integer',String(num),name,false,true,false,null,null);v.addr=a;v.meta={cache:true};S.vars.push(v);S.nameToAddr.set(name,a);addVarCard(v);}
-    }else{const a=nAddr();const n=parseInt(val);addHeapObj(a,'Integer',String(isNaN(n)?0:n),name,false,false,false,null,null);v.addr=a;S.vars.push(v);S.nameToAddr.set(name,a);addVarCard(v);}
+      if(S.intCache.has(key)){const a=S.intCache.get(key);v.addr=a;v.meta={cache:true};S.nameToAddr.set(name,a);addVarCard(v);addRefToObj(a,name);}
+      else{const a=nAddr();S.intCache.set(key,a);addHeapObj(a,'Integer',String(num),name,false,true,false,null,null);v.addr=a;v.meta={cache:true};S.nameToAddr.set(name,a);addVarCard(v);}
+    }else{
+      const a=nAddr();const n=parseInt(val);
+      addHeapObj(a,'Integer',String(isNaN(n)?0:n),name,false,false,false,null,null);
+      // Add a note badge to the created object
+      setTimeout(()=>{
+        const el=document.getElementById('obj-'+a);
+        if(el&&!el.querySelector('.out-of-cache-note')){
+          const note=document.createElement('div');
+          note.className='out-of-cache-note';
+          note.style.cssText='font-size:7px;color:var(--red);background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:3px;padding:2px 5px;margin-top:4px';
+          note.textContent=`⚠ Outside cache range — new object created. Integer == Integer is FALSE here!`;
+          el.appendChild(note);
+        }
+      },100);
+      v.addr=a;S.nameToAddr.set(name,a);addVarCard(v);
+    }
     return;
   }
   const a=nAddr();
   addHeapObj(a,resolved,String(val||'?'),name,false,false,false,null,null);
-  v.addr=a;S.vars.push(v);S.nameToAddr.set(name,a);addVarCard(v);
+  v.addr=a;S.nameToAddr.set(name,a);addVarCard(v);
 }
 
 // ─── Run ───
 function run(){
   clearAll(true);
+  // Create default main() frame
+  createFrame('main()');
   const lines=document.getElementById('code').value.split('\n');
   const errs=[],decls=[];
   lines.forEach((line,i)=>{
@@ -1010,23 +1340,29 @@ function run(){
 
 // ─── Clear ───
 function clearAll(silent=false){
-  S={vars:[],objs:new Map(),strPool:new Map(),intCache:new Map(),nameToAddr:new Map(),addrCtr:0x1000};
-  document.getElementById('slist').innerHTML='<div class="stack-empty" id="sempty">Write Java code<br>and press ▶ Run</div>';
+  S={frames:[],activeFrameId:null,objs:new Map(),strPool:new Map(),intCache:new Map(),nameToAddr:new Map(),addrCtr:0x1000,llNodes:new Map()};
+  const slist=document.getElementById('slist');
+  slist.innerHTML='<div class="stack-empty" id="sempty">Write Java code<br>and press ▶ Run</div>';
   document.getElementById('heap-canvas').innerHTML='';
   document.getElementById('pool-canvas').innerHTML='';
   document.getElementById('heap-empty').classList.remove('gone');
   document.getElementById('pool-empty').classList.remove('gone');
   document.getElementById('arrow-svg').querySelectorAll('.ap').forEach(e=>e.remove());
+  updateFrameLabel();
   updateStats();if(!silent)setMsg('Cleared','ok');
 }
 
-// ─── Scope Pop ───
+// ─── FIX #8: Scope / Frame panel ───
 let scopeSel=new Set();
 function showScopePanel(){
-  if(!S.vars.length){setMsg('No variables on stack','err');return;}
   scopeSel.clear();
   const list=document.getElementById('scope-var-list');list.innerHTML='';
-  S.vars.forEach(v=>{
+  const active=getActiveFrame();
+  const vars=active?active.vars:[];
+  if(!vars.length&&currentScopeTab==='pop'){
+    setMsg('No variables in active frame','err');
+  }
+  vars.forEach(v=>{
     const row=document.createElement('div');row.className='scope-var';row.id='scope-row-'+v.id;
     row.innerHTML=`<label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="sc-${v.id}" style="accent-color:var(--yellow)"><span><span class="scope-var-type">${esc(v.type)}</span> <span class="scope-var-name">${esc(v.name)}</span></span><span style="margin-left:auto;font-size:7px;color:var(--dim)">${v.isPrim?'primitive':v.addr?v.addr:'null'}</span></label>`;
     row.addEventListener('change',()=>{const c=document.getElementById('sc-'+v.id);if(c.checked)scopeSel.add(v.id);else scopeSel.delete(v.id);row.style.background=c.checked?'rgba(251,191,36,.08)':'';row.style.borderColor=c.checked?'rgba(251,191,36,.3)':'';});
@@ -1034,39 +1370,47 @@ function showScopePanel(){
   });
   document.getElementById('scope-overlay').classList.add('show');
 }
+
 function hideScopePanel(){document.getElementById('scope-overlay').classList.remove('show');}
+
 function executeScopePop(){
   if(!scopeSel.size){setMsg('Select at least one variable','err');return;}
   hideScopePanel();
-  const toPop=S.vars.filter(v=>scopeSel.has(v.id));
+  const active=getActiveFrame();if(!active)return;
+  const toPop=active.vars.filter(v=>scopeSel.has(v.id));
+  // Animate cards
   toPop.forEach((v,i)=>{
     const el=document.getElementById('var-'+v.id);
-    if(el)setTimeout(()=>{el.classList.add('popping');el.addEventListener('animationend',()=>el.remove(),{once:true});},i*120);
+    if(el)setTimeout(()=>{el.classList.add('popping');el.addEventListener('animationend',()=>el.remove(),{once:true});},i*100);
   });
   setTimeout(()=>{
     const poppedIds=new Set(toPop.map(v=>v.id));
-    S.vars=S.vars.filter(v=>!poppedIds.has(v.id));
-    const remainAddrs=new Set(S.vars.filter(v=>v.addr).map(v=>v.addr));
+    active.vars=active.vars.filter(v=>!poppedIds.has(v.id));
+    // Check remaining refs across ALL frames
+    const remainAddrs=new Set(allVars().filter(v=>v.addr).map(v=>v.addr));
     toPop.forEach(v=>{
       if(!v.addr)return;
       if(!remainAddrs.has(v.addr)){
-        const el=document.getElementById('obj-'+v.addr);
-        if(el){el.classList.add('gc-fade');el.addEventListener('animationend',()=>{el.remove();S.objs.delete(v.addr);S.strPool.forEach((a,k)=>{if(a===v.addr)S.strPool.delete(k);});S.intCache.forEach((a,k)=>{if(a===v.addr)S.intCache.delete(k);});updateStats();drawArrows();if(![...S.objs.values()].some(o=>!o.isPool))document.getElementById('heap-empty').classList.remove('gone');if(![...S.objs.values()].some(o=>o.isPool))document.getElementById('pool-empty').classList.remove('gone');},{once:true});}
-      }else{const o=S.objs.get(v.addr);if(o){o.refs=o.refs.filter(r=>r!==v.name);const re=document.getElementById('refs-'+v.addr);if(re)re.textContent=o.refs.join(', ');}}
+        // FIX #5: two-phase GC
+        scheduleGC(v.addr);
+      } else {
+        const o=S.objs.get(v.addr);if(o){o.refs=o.refs.filter(r=>r!==v.name);const re=document.getElementById('refs-'+v.addr);if(re)re.textContent=o.refs.join(', ');}
+      }
+      S.nameToAddr.delete(v.name);
     });
-    toPop.forEach(v=>S.nameToAddr.delete(v.name));
+    renderAllFrames();
     updateStats();drawArrows();
-    if(!S.vars.length)document.getElementById('slist').innerHTML='<div class="stack-empty" id="sempty">Write Java code<br>and press ▶ Run</div>';
-    setMsg(`⏏ ${toPop.length} var${toPop.length!==1?'s':''} popped — orphans GC'd`,'ok');
-  },toPop.length*120+200);
+    setMsg(`⏏ ${toPop.length} var${toPop.length!==1?'s':''} popped — orphans now GC-eligible`,'ok');
+  },toPop.length*100+200);
 }
 
 // ─── Stats ───
 function updateStats(){
   const poolN=[...S.objs.values()].filter(o=>o.isPool).length;
-  [['ss',S.vars.length],['sh',S.objs.size-poolN],['sp',poolN]].forEach(([id,n])=>{
+  const allV=allVars();
+  [['ss',allV.length],['sh',S.objs.size-poolN],['sp',poolN]].forEach(([id,n])=>{
     const el=document.getElementById(id);
-    if(el.textContent!==String(n)){el.textContent=n;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');el.addEventListener('transitionend',()=>el.classList.remove('pop'),{once:true});}
+    if(el&&el.textContent!==String(n)){el.textContent=n;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');el.addEventListener('transitionend',()=>el.classList.remove('pop'),{once:true});}
   });
 }
 function setMsg(t,tp='idle'){const e=document.getElementById('msg');e.textContent=t;e.className=`editor-msg ${tp}`;}
@@ -1087,28 +1431,46 @@ document.getElementById('help-overlay').addEventListener('click',e=>{if(e.target
 document.getElementById('scope-overlay').addEventListener('click',e=>{if(e.target.id==='scope-overlay')hideScopePanel();});
 
 let _last=0;
-(function loop(ts){if(ts-_last>60&&S.vars.some(v=>!v.isPrim&&v.addr)){drawArrows();_last=ts;}requestAnimationFrame(loop);})(0);
+(function loop(ts){if(ts-_last>60&&allVars().some(v=>!v.isPrim&&v.addr)){drawArrows();_last=ts;}requestAnimationFrame(loop);})(0);
 
 // ─── Boot Demo ───
 window.addEventListener('load',()=>{
   const demo=
-`// Primitives
+`// Primitives — stored directly on stack
 int age = 25;
 double gpa = 9.2;
 
-// Strings
+// Strings — go to pool (inside Heap)
 String name = "Neeraj";
 String name2 = "Neeraj";
 
-// ArrayList
+// ArrayList — contiguous indexed cells
 ArrayList<String> list = new ArrayList<>();
 list.add(Alice);
 list.add(Bob);
+list.add(Charlie);
 
-// HashMap
+// HashMap — order NOT guaranteed (see bucket indices)
 HashMap<String, String> map = new HashMap<>();
 map.put(name, Neeraj);
-map.put(city, Delhi);`;
+map.put(city, Delhi);
+map.put(lang, Java);
+
+// LinkedList — each node = separate heap object
+LinkedList<Integer> ll = new LinkedList<>();
+ll.add(10);
+ll.add(20);
+ll.add(30);
+
+// Stack — LIFO tower
+Stack<String> stk = new Stack<>();
+stk.push(First);
+stk.push(Second);
+stk.push(Top);
+
+// Integer cache demo
+Integer a = 100;
+Integer b = 200;`;
   codeEl.value=demo;syncLn();setTimeout(run,300);
 });
 </script>
