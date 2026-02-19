@@ -1,8 +1,27 @@
 # 🧠 JavaMem – Java Memory Visualizer
 
-> **A live, browser-based tool that visualizes how Java manages memory — stack, heap, and string pool — in real time.**
+> **Most Java memory tools show you a diagram. JavaMem shows you what's actually happening — and corrects the mental models that textbooks get wrong.**
 
-JavaMem parses simplified Java code you type and renders an animated, interactive diagram showing exactly where each variable lives, how references point to objects, and how different data structures look in memory. Built as a single self-contained HTML file — no install, no build step, no backend.
+JavaMem is a live, browser-based tool that visualizes how Java manages memory — stack, heap, string pool — in real time. Type simplified Java code into the editor, press Run, and watch an animated interactive diagram appear showing exactly where every variable lives, how references point to objects, how data structures are laid out, and what happens when objects go out of scope.
+
+Built as a single self-contained HTML file. No install, no build step, no backend.
+
+---
+
+## 🎯 Why I Built This
+
+While learning and teaching Java, I noticed that most memory visualizers — and even most textbooks — quietly teach wrong mental models. Things like:
+
+- **HashMap showing entries in insertion order** — making students think order is guaranteed (it isn't)
+- **ArrayList and LinkedList looking identical** — hiding the fundamental difference between contiguous array cells and scattered node objects
+- **Stack showing items bottom-up** — the opposite of how a real LIFO stack works
+- **LinkedList appearing as one heap object** — when in reality each node is a separate scattered allocation
+- **GC appearing instant** — when objects become eligible and when they're actually collected are two different events
+- **String Pool shown as a separate memory area** — when since Java 7 it lives inside the heap
+- **Integer cache only noted for explicit `Integer` types** — missing the autoboxing trap that causes `==` to silently fail above 127
+- **One flat stack frame** — giving no sense that each method call gets its own isolated frame
+
+I identified these 8 specific problems and built JavaMem to correct each one visually — not with a note in the corner, but in how each structure is actually rendered.
 
 ---
 
@@ -14,18 +33,6 @@ Open `index.html` directly in any modern browser on a laptop or tablet. That's i
 
 ---
 
-## 🎯 What It Does
-
-When you type Java-like declarations into the code editor and press **▶ Run**, JavaMem:
-
-1. **Parses** your code line by line
-2. **Renders stack cards** for every variable declared
-3. **Spawns heap objects** for reference types, positioned in the correct memory region
-4. **Draws animated arrows** from stack variables to their heap objects
-5. **Lets you manipulate** each data structure live using Add and Remove controls embedded in each heap card
-
----
-
 ## 🖥️ UI Layout
 
 ```
@@ -33,73 +40,84 @@ When you type Java-like declarations into the code editor and press **▶ Run**,
 │  Header: JavaMem logo · Stack / Heap / Pool counts · Zoom        │
 ├───────────────┬──────────────┬───────────────────────────────────┤
 │               │              │                                   │
-│  Code Editor  │  Stack Panel │         Heap Region               │
-│               │              │   (draggable object cards)        │
-│  [▶ Run]      │  (variable   ├───────────────────────────────────┤
-│  [Clear]      │   cards,     │                                   │
-│  [Scope Pop]  │   bottom-up) │       String Pool Region          │
-│  [Arrays]     │              │   (interned strings, int cache)   │
-│  [Help]       │              │                                   │
+│  Code Editor  │  Call Stack  │         Heap Region               │
+│               │  (frames +   │   (draggable object cards)        │
+│  [▶ Run]      │   variable   ├───────────────────────────────────┤
+│  [Clear]      │   cards)     │  String Pool  ← lives inside Heap │
+│  [⏏ Scope]   │              │  (interned strings, int cache)    │
+│  [⊞ Arrange]  │              │                                   │
+│  [? Help]     │              │                                   │
 └───────────────┴──────────────┴───────────────────────────────────┘
 ```
 
-**Animated SVG arrows** float over the entire layout, connecting each stack reference variable to its corresponding heap object.
+Animated SVG arrows float over the entire layout, connecting each stack reference variable to its corresponding heap object, color-coded by type.
 
 ---
 
 ## 📦 Supported Java Types & Data Structures
 
-Every supported type has exactly **two interactive operations: `add` and `remove`** (labeled contextually per type). The code editor also supports declaring and pre-populating them inline.
-
 ---
 
-### 🔷 Primitive Types — Stack Only
+### Primitive Types — Stack Only
 
 Primitive values are stored directly on the stack card. No heap object is created.
 
-| Type | Example | Stack Value |
-|---|---|---|
-| `int` | `int age = 25;` | `25` |
-| `double` | `double gpa = 9.2;` | `9.2` |
-| `float` | `float pi = 3.14;` | `3.14` |
-| `long` | `long big = 100L;` | `100` |
-| `boolean` | `boolean flag = true;` | `true` |
-| `char` | `char c = 'A';` | `'A'` |
-| `byte` | `byte b = 8;` | `8` |
-| `short` | `short s = 32;` | `32` |
-
-**Add:** Not applicable — primitives are declared with a value in code.  
-**Remove:** Use **Scope Pop** to pop individual primitive variables off the stack.
+| Type | Example |
+|---|---|
+| `int` | `int age = 25;` |
+| `double` | `double gpa = 9.2;` |
+| `float` | `float pi = 3.14;` |
+| `long` | `long big = 100L;` |
+| `boolean` | `boolean flag = true;` |
+| `char` | `char c = 'A';` |
+| `byte` | `byte b = 8;` |
+| `short` | `short s = 32;` |
 
 ---
 
-### 🔷 String — String Pool
+### String — String Pool (inside the Heap)
 
-`String` objects are placed in the **String Pool** region. JavaMem simulates Java's string interning: two variables with identical string values point to the same pool object.
+`String` literals go to the **String Pool**, which lives inside the Heap region (Java 7+). Two variables with identical string values point to the same pool object — simulating Java's string interning.
 
 ```java
 String name  = "Neeraj";
 String name2 = "Neeraj"; // → same pool object, two references
+String s     = new String("Alice"); // → new heap object, not pooled
 ```
 
-The stack card shows the pool address; an arrow connects the variable to the interned object.
+---
 
-| Operation | Label | Behavior |
-|---|---|---|
-| **Add** | — | Declare a new `String` variable in the editor |
-| **Remove** | Scope Pop | Remove the variable; if no other references exist, the pool entry is GC'd |
+### Integer — Wrapper & Cache
+
+Integers in **−128 to 127** are served from the Integer cache — the same object is reused. Outside that range, a new heap object is created every time. JavaMem makes this visible with a warning on out-of-cache objects explaining why `==` is unreliable for `Integer`.
+
+```java
+Integer a = 100; // cache hit — shared object
+Integer b = 200; // new heap object — a == b would be false here
+```
 
 ---
 
-### 🔷 Integer Cache
+### ArrayList — Contiguous Indexed Cells
 
-Integers in the range **−128 to 127** are cached (per Java spec). When you declare a boxed integer in this range, JavaMem places the object in the **String Pool region** with a `⚑ CACHE` badge instead of the heap.
+Rendered as **horizontal indexed cells** `[0] · [1] · [2]` — visually reflecting that ArrayList is backed by a contiguous array, not a linked structure. O(1) index access, O(n) insert/delete.
+
+```java
+ArrayList<String> list = new ArrayList<>();
+list.add(Alice);
+list.add(Bob);
+```
+
+| Operation | Behavior |
+|---|---|
+| `add` | Appends value, new cell appears |
+| `remove last` | Removes last cell |
 
 ---
 
-### 🔷 LinkedList — Visual Node Chain
+### LinkedList — Separate Node Objects in the Heap
 
-`LinkedList<T>` is rendered as a visual **node chain** with boxes connected by arrows, simulating a singly-linked list. Each node shows its value and its `next` pointer (or `null` at the tail). The chain is scrollable if it grows long.
+Each node is spawned as its own **individual heap card**, scattered across the heap canvas — showing that LinkedList nodes are separate allocations connected by pointers, not a single block. Each node card shows its `value` field and `next →` pointer.
 
 ```java
 LinkedList<Integer> ll = new LinkedList<>();
@@ -108,23 +126,74 @@ ll.add(20);
 ll.add(30);
 ```
 
-Renders as:
+The controller card shows a compact chain `[10] → [20] → [30] → ∅` while individual node cards live separately in the heap.
 
-```
-HEAD
-[10 | next] → [20 | next] → [30 | null] → ∅
-```
-
-| Operation | Label | Behavior |
-|---|---|---|
-| **Add** | `add (tail)` | Appends the entered value to the end of the list |
-| **Remove** | `remove (val)` | Removes the first node matching the entered value; if input is blank, removes the tail node |
+| Operation | Behavior |
+|---|---|
+| `add (tail)` | Appends and spawns a new node card in the heap |
+| `remove (val)` | Removes matching node; blank input removes tail |
 
 ---
 
-### 🔷 BST — Binary Search Tree
+### Stack — LIFO Tower
 
-`BST` is rendered as a **canvas-drawn tree diagram** — nodes as yellow-bordered circles, edges as lines, with the root labeled. The canvas resizes dynamically based on tree depth. In-order traversal is shown as a sorted sequence below the tree.
+Rendered as a **vertical tower with the top at the top**. New items push upward, `pop()` removes from the top. The `← TOP` label always marks the active element.
+
+```java
+Stack<String> stk = new Stack<>();
+stk.push(First);
+stk.push(Second);
+stk.push(Top);
+```
+
+| Operation | Behavior |
+|---|---|
+| `push ↑` | New item appears at top of tower |
+| `pop ↓` | Removes and displays the top item |
+
+---
+
+### HashMap / TreeMap / LinkedHashMap
+
+Each map type is rendered differently to show how order actually works:
+
+- **HashMap** — entries displayed in hash bucket order with `[b0]`, `[b3]`, `[b11]`... bucket indices and a warning: *order NOT guaranteed*
+- **TreeMap** — entries sorted by key, labeled *sorted (natural order)*
+- **LinkedHashMap** — entries in insertion order, labeled *insertion-order preserved*
+
+```java
+HashMap<String, String> map = new HashMap<>();
+map.put(name, Neeraj);
+map.put(city, Delhi);
+```
+
+| Operation | Behavior |
+|---|---|
+| `put` | Inserts or updates entry |
+| `remove` | Deletes entry by key |
+
+---
+
+### HashSet / TreeSet
+
+- **HashSet** — elements shown in hash order as chips, with warning: *iteration order NOT guaranteed*
+- **TreeSet** — elements shown sorted
+
+```java
+HashSet<String> set = new HashSet<>();
+set.add(apple);
+```
+
+| Operation | Behavior |
+|---|---|
+| `add` | Adds if not already present |
+| `remove` | Removes specified value |
+
+---
+
+### BST — Binary Search Tree
+
+Rendered as a **canvas-drawn tree** — nodes as yellow-bordered circles, edges as lines, root labeled. Canvas resizes with tree depth. In-order traversal shown as a sorted sequence. Full BST deletion logic including in-order successor replacement.
 
 ```java
 BST tree = new BST();
@@ -133,94 +202,26 @@ tree.add(30);
 tree.add(70);
 ```
 
-BST enforces **no duplicates**. Only numeric values are accepted.
-
-| Operation | Label | Behavior |
-|---|---|---|
-| **Add** | `insert` | Inserts a numeric value following BST rules (left < root < right) |
-| **Remove** | `delete` | Deletes the node; handles all cases including nodes with two children via in-order successor replacement |
+| Operation | Behavior |
+|---|---|
+| `insert` | Inserts numeric value following BST rules |
+| `delete` | Deletes node; handles all cases |
 
 ---
 
-### 🔷 ArrayList
+### Arrays
 
-`ArrayList<T>` is a dynamic list shown as an index → value table inside the heap card.
-
-```java
-ArrayList<String> list = new ArrayList<>();
-list.add(Alice);
-list.add(Bob);
-```
-
-| Operation | Label | Behavior |
-|---|---|---|
-| **Add** | `add` | Appends the entered value to the end |
-| **Remove** | `remove(last)` | Removes the last element |
-
----
-
-### 🔷 Stack
-
-`Stack<T>` is a LIFO structure. The add operation pushes to the top; remove pops from the top.
-
-```java
-Stack<Integer> s = new Stack<>();
-s.add(1);
-s.add(2);
-```
-
-| Operation | Label | Behavior |
-|---|---|---|
-| **Add** | `push` | Pushes the entered value onto the top of the stack |
-| **Remove** | `pop` | Removes and displays the top element |
-
----
-
-### 🔷 HashMap / TreeMap / LinkedHashMap
-
-Map types display a **key → value** table inside the heap card.
-
-```java
-HashMap<String, String> map = new HashMap<>();
-map.put(name, Neeraj);
-map.put(city, Delhi);
-```
-
-| Operation | Label | Behavior |
-|---|---|---|
-| **Add** | `put` | Inserts or updates an entry with the given key and value |
-| **Remove** | `remove` | Deletes the entry with the given key |
-
----
-
-### 🔷 HashSet / TreeSet
-
-Set types display elements as a `{a, b, c}` list. Duplicates are rejected.
-
-```java
-HashSet<String> set = new HashSet<>();
-```
-
-| Operation | Label | Behavior |
-|---|---|---|
-| **Add** | `add` | Adds the value if not already present |
-| **Remove** | `remove` | Removes the specified value |
-
----
-
-### 🔷 Arrays (primitive and object)
-
-Fixed-size arrays are allocated on the heap. The index `[i]` and value are shown per row.
+Fixed-size arrays rendered as indexed cells (same style as ArrayList), labeled *fixed-size contiguous block*.
 
 ```java
 int[] nums = new int[5];
-String[] words = new String[3];
+int[] scores = {95, 87, 76};
 ```
 
-| Operation | Label | Behavior |
-|---|---|---|
-| **Add** | `set[i]` | Sets the value at the given index |
-| **Remove** | `reset` | Resets the value at the given index to `0` |
+| Operation | Behavior |
+|---|---|
+| `set[i]` | Sets value at given index |
+| `reset` | Resets index to `0` |
 
 ---
 
@@ -228,11 +229,81 @@ String[] words = new String[3];
 
 | Button | Action |
 |---|---|
-| **▶ Run** (`Ctrl+Enter`) | Parses the editor code and renders the memory diagram |
-| **Clear** | Clears all variables, heap objects, and resets the diagram |
-| **Scope Pop** | Opens a panel to select individual stack variables to pop; orphaned heap objects are GC-animated and removed |
-| **Arrays** | Inserts a sample array declaration snippet into the editor |
-| **Help** | Opens a syntax reference guide |
+| **▶ Run** (`Ctrl+Enter`) | Parses editor code and renders the memory diagram |
+| **✕ Clear** | Clears all variables, heap objects, resets diagram |
+| **⏏ Scope** | Select stack variables to pop; orphaned objects become GC-eligible |
+| **⊞ Arrange** | Auto-arranges heap cards in a grid |
+| **? Help** | Opens syntax reference |
+
+---
+
+## ⚡ Memory Mechanics Simulated
+
+**String interning** — identical string literals share one pool object; reference count tracked and displayed.
+
+**Integer cache** — boxed integers −128 to 127 reuse cached objects. Out-of-range integers get a warning explaining why `==` fails.
+
+**Two-phase garbage collection** — when scope pop removes the last reference to an object, it enters a *GC-eligible* state (red pulsing border, `⚠ GC eligible — unreachable` badge). After a random 1.5–4 second delay it is actually collected with a fade animation. This reflects that GC eligibility and GC collection are two separate events.
+
+**Call stack frames** — variables are grouped into named stack frames. The active frame is highlighted. Popping scope removes variables from the active frame.
+
+**Reference arrows** — animated dashed bezier curves connect each reference variable to its heap object, color-coded by type (blue for general refs, teal for LinkedList, yellow for BST, orange for pool).
+
+**Zoom & drag** — heap object cards are freely draggable; each memory region can be zoomed independently.
+
+---
+
+## 📝 Supported Syntax
+
+```java
+// Primitives
+int x = 10;
+double d = 3.14;
+boolean flag = true;
+char c = 'A';
+
+// Strings
+String name = "Alice";
+String s = new String("Alice"); // forces new heap object
+
+// ArrayList
+ArrayList<String> list = new ArrayList<>();
+list.add(Alice);
+
+// LinkedList
+LinkedList<Integer> ll = new LinkedList<>();
+ll.add(10);
+ll.add(20);
+ll.remove(10);
+
+// Stack
+Stack<Integer> stk = new Stack<>();
+stk.push(1);
+stk.push(2);
+stk.pop();
+
+// HashMap / TreeMap / LinkedHashMap
+HashMap<String, String> map = new HashMap<>();
+map.put(key, value);
+map.remove(key);
+
+// HashSet / TreeSet
+HashSet<String> set = new HashSet<>();
+set.add(hello);
+set.remove(hello);
+
+// BST
+BST tree = new BST();
+tree.add(50);
+tree.add(30);
+tree.remove(30);
+
+// Arrays
+int[] nums = new int[5];
+int[] scores = {95, 87, 76};
+```
+
+> String and identifier values in method calls do not need quotes in the editor syntax.
 
 ---
 
@@ -240,89 +311,28 @@ String[] words = new String[3];
 
 | Region | Color | What Lives Here |
 |---|---|---|
-| **Stack** | Blue | All declared variables (primitives as values, references as addresses) |
-| **Heap** | Green | All non-pooled reference objects (LinkedList, BST, ArrayList, etc.) |
-| **String Pool** | Orange | Interned `String` objects, Integer cache entries |
+| **Stack** | Blue | All declared variables — primitives as values, references as addresses |
+| **Heap** | Green | All non-pooled reference objects |
+| **String Pool** | Orange | Interned strings and Integer cache entries — a sub-region inside the Heap |
 
 ---
 
-## ⚡ Memory Mechanics Simulated
+## 🚧 Current Status
 
-- **String interning** — identical string literals share one pool object; reference count is tracked
-- **Integer cache** — boxed integers −128 to 127 reuse cached heap objects
-- **Garbage collection** — when a Scope Pop removes the last reference to a heap object, the object fades out with a GC animation
-- **Reference arrows** — animated dashed bezier curves connect each reference variable on the stack to its heap object, color-coded by type
-- **Zoom** — each memory region (heap/pool) can be zoomed in or out independently
-- **Drag** — heap object cards are freely draggable within their region
+This is a working prototype — the entire application lives in a single HTML file with vanilla JavaScript. Built this way intentionally to move fast, validate the concept, and get something visual working quickly.
 
----
+### Planned Rebuild
 
-## 📝 Supported Syntax (Editor)
+The next step is a proper migration to a component-based architecture:
 
-```java
-// Primitive
-int x = 10;
-double d = 3.14;
-boolean flag = true;
+- **Component structure** — editor, stack panel, heap cards each as isolated reusable components
+- **Centralized state** — one source of truth for all memory state instead of scattered variables
+- **Parser / renderer separation** — the code-reading logic and diagram-drawing logic fully decoupled
+- **Test coverage** — unit tests for the parser and data structure logic
+- **Performance** — better handling for large numbers of heap objects and deep trees
 
-// String
-String s = "hello";
-
-// Data Structures
-ArrayList<String> list = new ArrayList<>();
-list.add(Alice);
-list.remove();
-
-LinkedList<Integer> ll = new LinkedList<>();
-ll.add(10);
-ll.add(20);
-ll.remove(10);
-
-BST tree = new BST();
-tree.add(50);
-tree.add(30);
-tree.remove(30);
-
-HashMap<String, String> map = new HashMap<>();
-map.put(key, value);
-map.remove(key);
-
-Stack<Integer> s = new Stack<>();
-s.add(1);
-s.remove();
-
-HashSet<String> set = new HashSet<>();
-set.add(hello);
-set.remove(hello);
-
-int[] nums = new int[5];
-String[] words = new String[3];
-```
-
-> Note: String and identifier values in method calls do not need quotes in the editor syntax.
+Everything that makes the tool useful — live arrows, animations, draggable cards, add/remove buttons — stays exactly the same. The rewrite is purely about the code behind it.
 
 ---
 
-
-
-## 🚧 Current Status — Demo / Prototype
-
-> **This is a demo.** The entire application — UI, parser, visualizer, and all data structure logic — lives in a single raw HTML file with vanilla JavaScript. It was built this way to move fast, validate the idea, and get something visual working quickly.
-
-This prototype proves the concept works well. The next step is a proper migration.
-
-### 🔜 Planned: Rebuild with Proper Tools
-
-Right now everything — the buttons, the logic, the visuals — is crammed into one big HTML file. It works, but as the project grows it gets harder to manage and add new things to.
-
-The plan is to rewrite JavaMem in a cleaner, more organized way:
-
-- **Break it into proper pieces** — instead of one giant file, each part of the UI (editor, stack panel, heap cards) will be its own separate, reusable component
-- **Keep the data in one place** — right now all the memory state is scattered around; the rewrite will have one central place that holds everything, making it easier to track and update
-- **Make the code easier to read and debug** — adding clearer structure so anyone (including future me) can understand what each part does
-- **Separate the "parsing" from the "drawing"** — the part that reads your Java code and the part that draws the diagram will be split up, making both easier to fix and improve
-- **Add tests** — so if something breaks, it's caught immediately instead of discovered later
-
-Everything that makes this tool fun and useful — the live arrows, the animations, dragging cards around, the add/remove buttons — will stay exactly the same. The rewrite is just about making the code behind it cleaner and easier to build on top of.
-
-** ⭐💡 Have ideas or want to help? Feel free to open an issue or start a discussion.**
+⭐ Have ideas or want to contribute? Open an issue or start a discussion.
