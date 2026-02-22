@@ -317,21 +317,6 @@ int[] scores = {95, 87, 76};
 
 ---
 
-## 🚧 Current Status
-
-This is a working prototype — the entire application lives in a single HTML file with vanilla JavaScript. Built this way intentionally to move fast, validate the concept, and get something visual working quickly.
-
-### Planned Rebuild
-
-The next step is a proper migration to a component-based architecture:
-
-- **Component structure** — editor, stack panel, heap cards each as isolated reusable components
-- **Centralized state** — one source of truth for all memory state instead of scattered variables
-- **Parser / renderer separation** — the code-reading logic and diagram-drawing logic fully decoupled
-- **Test coverage** — unit tests for the parser and data structure logic
-- **Performance** — better handling for large numbers of heap objects and deep trees
-
-Everything that makes the tool useful — live arrows, animations, draggable cards, add/remove buttons — stays exactly the same. The rewrite is purely about the code behind it.
 
 ---
 
