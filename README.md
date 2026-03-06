@@ -1,5 +1,7 @@
 # 🧠 JavaMem – Java Memory Visualizer
 
+![JavaMem Demo](demo.gif)
+
 > **Most Java memory tools show you a diagram. JavaMem shows you what's actually happening — and corrects the mental models that textbooks get wrong.**
 
 JavaMem is a live, browser-based tool that visualizes how Java manages memory — stack, heap, string pool — in real time. Type simplified Java code into the editor, press Run, and watch an animated interactive diagram appear showing exactly where every variable lives, how references point to objects, how data structures are laid out, and what happens when objects go out of scope.
